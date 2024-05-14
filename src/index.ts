@@ -1,9 +1,10 @@
 import cors from "cors";
 import express, { Application } from "express";
 import path from "path";
-import errorMiddleware from "./middleware/err";
-import { appDataSource } from "./orm.config";
 import sanitizedConfig from "./config";
+import errorMiddleware from "./middleware/err";
+import { isAuthenticated } from "./middleware/isAuth";
+import { appDataSource } from "./orm.config";
 import {
   brandRoutes,
   businessRoutes,
@@ -14,12 +15,10 @@ import {
   productGroupRoutes,
   productRoutes,
   purchaseRoutes,
-  sizeRoutes,
   unitRoutes,
   userRoutes,
-  warrantyRoutes,
+  warrantyRoutes
 } from "./routes";
-import { isAuthenticated } from "./middleware/isAuth";
 
 const mount = async (app: Application) => {
   await appDataSource.initialize();
@@ -37,7 +36,6 @@ const mount = async (app: Application) => {
   app.use("/api/v1/contacts", isAuthenticated, contactRoutes);
   app.use("/api/v1/products", isAuthenticated, productRoutes);
   app.use("/api/v1/warranties", isAuthenticated, warrantyRoutes);
-  app.use("/api/v1/sizes", isAuthenticated, sizeRoutes);
   app.use("/api/v1/units", isAuthenticated, unitRoutes);
   app.use("/api/v1/categories", isAuthenticated, categoryRoutes);
   app.use("/api/v1/models", isAuthenticated, modelRoutes);

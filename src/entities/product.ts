@@ -3,25 +3,23 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinColumn,
   JoinTable,
   ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
+  UpdateDateColumn
 } from "typeorm";
 import { Brand } from "./brand";
+import { Business } from "./business";
 import { Category } from "./category";
 import { Color } from "./color";
 import { Image } from "./image";
 import { Model } from "./model";
 import { ProductGroup } from "./product-group";
-import { Size } from "./size";
+import { Purchase } from "./purchase";
 import { Unit } from "./unit";
 import { Warranty } from "./warranty";
-import { Business } from "./business";
-import { Purchase } from "./purchase";
 
 export enum ProductType {
   BARCODE = "BARCODE",
@@ -78,12 +76,6 @@ export class Product extends BaseEntity {
     onDelete: "RESTRICT",
   })
   warranty: Warranty | null;
-
-  @ManyToMany(() => Size, (s) => s.products, {
-    eager: true,
-  })
-  @JoinTable()
-  sizes: Size[];
 
   @ManyToMany(() => Color, (c) => c.products, {
     eager: true,
@@ -145,12 +137,6 @@ export class Product extends BaseEntity {
   @UpdateDateColumn()
   udpatedAt: Date;
 
-  addSize(size: Size) {
-    if (this.sizes == null) {
-      this.sizes = new Array<Size>();
-    }
-    this.sizes.push(size);
-  }
 
   addColor(color: Color) {
     if (this.colors == null) {

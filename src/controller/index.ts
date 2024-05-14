@@ -1,6 +1,5 @@
 export * from './user'
 export * from './contact'
-export * from './size'
 export * from './category'
 export * from './brand'
 export * from './model'

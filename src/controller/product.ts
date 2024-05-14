@@ -2,13 +2,11 @@ import {
   Brand,
   Category,
   Color,
-  Image,
   Model,
   Product,
   ProductGroup,
-  Size,
   Unit,
-  Warranty,
+  Warranty
 } from "../entities";
 import { appDataSource } from "../orm.config";
 import { ApiError, deleteFile, prettyError, requestHandler } from "../utils";
@@ -30,11 +28,10 @@ export class ProductController extends Controller<Product> {
           "model",
           "productGroup",
           "product_type",
-          "sizes",
           "colors"
         );
 
-        const { selling_price, sizes, colors, ...data } = req.body;
+        const { selling_price, colors, ...data } = req.body;
 
         // Finding user
         if (!req.user) {
@@ -118,15 +115,7 @@ export class ProductController extends Controller<Product> {
               },
             });
             product.addColor(colorEntity);
-          }),
-          sizes.map(async (s: string) => {
-            const sizesEntity = await this.getRepository(Size).findOneOrFail({
-              where: {
-                id: s,
-              },
-            });
-            product.addSize(sizesEntity);
-          }),
+          })
         ]);
 
         await product.save();
@@ -208,7 +197,6 @@ export class ProductController extends Controller<Product> {
         const qb = this.repository
           .createQueryBuilder("p")
           .leftJoinAndSelect("p.images", "i")
-          .leftJoinAndSelect("p.sizes", "s")
           .leftJoinAndSelect("p.colors", "c")
           .leftJoinAndSelect("p.brand", "b")
           .leftJoinAndSelect("p.productGroup", "pg")
@@ -233,7 +221,6 @@ export class ProductController extends Controller<Product> {
         cat: String.toString(),
         brand: String.toString(),
         model: String.toString(),
-        size: String.toString(),
         color: String.toString(),
         group: String.toString(),
         warranty: String.toString(),
@@ -248,7 +235,6 @@ export class ProductController extends Controller<Product> {
         const product = await this.repository
           .createQueryBuilder("p")
           .leftJoinAndSelect("p.images", "i")
-          .leftJoinAndSelect("p.sizes", "s")
           .leftJoinAndSelect("p.colors", "c")
           .leftJoinAndSelect("p.brand", "b")
           .leftJoinAndSelect("p.productGroup", "pg")
@@ -276,7 +262,6 @@ export class ProductController extends Controller<Product> {
       .getRepository(Product)
       .createQueryBuilder("p")
       .leftJoinAndSelect("p.images", "i")
-      .leftJoinAndSelect("p.sizes", "s")
       .leftJoinAndSelect("p.business", "business")
       .leftJoinAndSelect("p.colors", "c")
       .leftJoinAndSelect("p.brand", "b")
