@@ -32,6 +32,8 @@ export class Invoice {
   @Column({ type: "double", nullable: true })
   due_amount: number;
 
+  @Column({ type: "double", nullable: true })
+  transport_cost: number;
   @Column({ nullable: true, type: "double" })
   change_amount: number;
 

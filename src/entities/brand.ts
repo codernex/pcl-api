@@ -18,7 +18,7 @@ export class Brand extends BaseEntity {
   @Column({ unique: true })
   name: string;
 
-  @Column()
+  @Column({nullable:true})
   description: string;
 
   @OneToMany(() => Product, (p) => p.brand)

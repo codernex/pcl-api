@@ -11,7 +11,7 @@ export class Warranty {
   @Column()
   duration: string;
 
-  @Column()
+  @Column({nullable:true})
   description: string;
 
   @OneToMany(()=>Product,p=>p.warranty)

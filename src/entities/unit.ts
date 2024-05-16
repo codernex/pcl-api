@@ -11,7 +11,7 @@ export class Unit {
   @Column({unique:true})
   shortName: string;
 
-  @Column()
+  @Column({nullable:true})
   description: string;
 
   @OneToMany(()=>Product,p=>p.unit)

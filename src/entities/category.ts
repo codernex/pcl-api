@@ -21,7 +21,7 @@ export class Category {
   @Column({ unique: true })
   name: string;
 
-  @Column()
+  @Column({nullable:true})
   description: string;
 
   @Column()
@@ -29,9 +29,6 @@ export class Category {
 
   @Column()
   brand: string;
-
-  @Column({ type: "double", nullable: true })
-  commission: number;
 
   @OneToMany(() => Product, (p) => p.category)
   products: Product[];

@@ -29,7 +29,8 @@ export class InvoiceController extends Controller<Invoice> {
           "total_amount",
           "paid_amount",
           "payment_method",
-          "customer_id"
+          "customer_id",
+          "transport_cost"
         );
 
         this.isValidEnum(PaymentMethod, req.body.payment_method);
@@ -37,8 +38,10 @@ export class InvoiceController extends Controller<Invoice> {
          * Error Handling part done
          */
 
+        const transport_cost = Number.parseFloat(req.body.transport_cost);
         const paid_amount = Number.parseFloat(req.body.paid_amount);
-        const total_amount = Number.parseFloat(req.body.total_amount);
+        const total_amount =
+          Number.parseFloat(req.body.total_amount) + transport_cost;
         const change_amount = paid_amount - total_amount;
         const due_amount = total_amount - paid_amount;
         console.log("🚀 ~ InvoiceController ~ due_amount:", due_amount);
@@ -70,6 +73,11 @@ export class InvoiceController extends Controller<Invoice> {
         payment.reciver_id = req.user.id;
         payment.payment_method = req.body.payment_method;
         if (due_amount > 0) {
+          if (contact.credit_limit < due_amount) {
+            throw new Error("Credit limit exceeded");
+          }
+          contact.due = due_amount;
+          await contact.save();
           payment.payment_status = PaymentStatus.DUE;
         } else {
           payment.payment_status = PaymentStatus.PAID;
@@ -85,6 +93,7 @@ export class InvoiceController extends Controller<Invoice> {
         invoice.due_amount = due_amount > 0 ? due_amount : 0;
         invoice.change_amount = change_amount > 0 ? change_amount : 0;
         invoice.quantity = totalQty;
+        invoice.transport_cost=transport_cost?transport_cost:0
 
         if (due_amount > 0) {
           invoice.status = PaymentStatus.DUE;
@@ -120,6 +129,7 @@ export class InvoiceController extends Controller<Invoice> {
         paid_amount: string;
         payment_method: PaymentMethod;
         customer_id: number;
+        transport_cost: string;
       },
     }
   );

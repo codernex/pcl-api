@@ -15,9 +15,7 @@ export class CategoryController extends Controller<Category> {
                 this.validateErr(
                     req.body,
                     "name",
-                    "description",
                     "isActive",
-                    "commission",
                     "brand",
                     "productGroup"
                 );

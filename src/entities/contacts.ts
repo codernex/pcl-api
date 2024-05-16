@@ -1,4 +1,5 @@
 import {
+  BaseEntity,
   Column,
   Entity,
   JoinColumn,
@@ -12,7 +13,7 @@ import { PaymentOption } from "./paymentoption";
 import { Invoice } from "./invoice";
 
 @Entity()
-export class Contacts {
+export class Contacts  extends BaseEntity{
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -24,6 +25,12 @@ export class Contacts {
 
   @Column()
   email: string;
+
+  @Column({nullable:true})
+  credit_limit:number
+
+  @Column({ nullable: true,type:"double" })
+  due: number;
 
   @Column({ nullable: true })
   address: string;

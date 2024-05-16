@@ -16,7 +16,7 @@ export class Color extends BaseEntity {
   @Column({ unique: true })
   name: string;
 
-  @Column()
+  @Column({nullable:true})
   description: string;
 
   @ManyToMany(() => Product, (p) => p.colors, {

@@ -13,7 +13,7 @@ export class BrandController extends Controller<Brand> {
                 const file = req.file;
                 let brandImage: Image | null = null;
 
-                this.validateErr(req.body, "isActive", "name", "description");
+                this.validateErr(req.body, "isActive", "name");
                 // Saving The Brand Image TO Database
                 if (file) {
                     brandImage = await this.getRepository(Image).save({
