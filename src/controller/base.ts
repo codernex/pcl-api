@@ -29,9 +29,13 @@ export abstract class Controller<T extends ObjectLiteral> {
     });
   };
 
+  protected failed = (err: any, next: NextFunction) => {
+    ApiError(err, 404, next);
+  };
+
   protected isValidEnum<T>(
     enumObject: T extends { [key: string]: any } ? T : never,
-    type: keyof T,
+    type: keyof T
   ) {
     if (!type) {
       return;

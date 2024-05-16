@@ -3,9 +3,23 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
-  PrimaryGeneratedColumn
+  PrimaryGeneratedColumn,
 } from "typeorm";
 import { Contacts } from "./contacts";
+export enum PaymentMethod {
+  CASH = "CASH",
+  CREDIT_CARD = "CREDIT_CARD",
+  BKASH = "BKASH",
+  BANK_TRANSFER = "BANK_TRANSFER",
+  NAGAD = "NAGAD",
+  ROCKET = "ROCKET",
+}
+
+export enum PaymentStatus {
+  UNPAID = "UNPAID",
+  PAID = "PAID",
+  DUE = "DUE",
+}
 @Entity()
 export class PaymentOption {
   @PrimaryGeneratedColumn()
@@ -17,16 +31,30 @@ export class PaymentOption {
   @Column()
   type: string;
 
+  @Column({ nullable: true, type: "enum", enum: PaymentMethod })
+  payment_method: PaymentMethod;
+
+  @Column({
+    nullable: true,
+    enum: PaymentStatus,
+    default: PaymentStatus.PAID,
+    type: "enum",
+  })
+  payment_status: PaymentStatus;
+
   @Column()
   reciver_id: number;
 
-  @Column({nullable:true})
+  @Column({ nullable: true })
   recived_by: string;
 
-  @ManyToOne(() => Contacts,c=>c.payment_option, { cascade: true, onUpdate: "CASCADE" })
+  @ManyToOne(() => Contacts, (c) => c.payment_option, {
+    cascade: true,
+    onUpdate: "CASCADE",
+  })
   @JoinColumn({
-    name:"contact_id",
-    referencedColumnName:"id"
+    name: "contact_id",
+    referencedColumnName: "id",
   })
   contact: Contacts;
 }

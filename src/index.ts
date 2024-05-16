@@ -11,13 +11,15 @@ import {
   categoryRoutes,
   colorRoutes,
   contactRoutes,
+  invoiceRoutes,
   modelRoutes,
+  paperRoutes,
   productGroupRoutes,
   productRoutes,
   purchaseRoutes,
   unitRoutes,
   userRoutes,
-  warrantyRoutes
+  warrantyRoutes,
 } from "./routes";
 
 const mount = async (app: Application) => {
@@ -44,6 +46,8 @@ const mount = async (app: Application) => {
   app.use("/api/v1/brands", isAuthenticated, brandRoutes);
   app.use("/api/v1/business", isAuthenticated, businessRoutes);
   app.use("/api/v1/purchase", isAuthenticated, purchaseRoutes);
+  app.use("/api/v1/invoices", isAuthenticated, invoiceRoutes);
+  app.use("/api/v1/paper", isAuthenticated, paperRoutes);
 
   app.get("/api/v1/healthz", (_req, res) => {
     res.status(200).json({ status: "ok" });

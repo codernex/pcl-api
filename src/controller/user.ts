@@ -115,7 +115,8 @@ export class UserController extends Controller<User> {
         return this.success(res, req.user)
     });
     public findUserById = async (id: string | undefined) => {
-        return await this.repository.createQueryBuilder("u").where("u.id = :id", {id}).leftJoinAndSelect("u.business", "b").getOneOrFail();
+        const user= await this.repository.createQueryBuilder("u").where("u.id = :id", {id}).leftJoinAndSelect("u.business", "b").getOneOrFail();     
+        return user
     }
 
     public async userAccessController() {

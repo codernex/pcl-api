@@ -3,10 +3,13 @@ import sanitizedConfig from "./config";
 import {
   Brand,
   Business,
+  Cart,
   Category,
   Color,
   Contacts,
   Image,
+  Invoice,
+  InvoicePaper,
   Model,
   PaymentDetails,
   PaymentOption,
@@ -18,6 +21,7 @@ import {
   User,
   Warranty,
 } from "./entities";
+import { PaperSizeSubsciber } from "./subscriber";
 
 export const appDataSource = new DataSource({
   type: "mysql",
@@ -42,7 +46,11 @@ export const appDataSource = new DataSource({
     Business,
     Purchase,
     PaymentOption,
+    Invoice,
+    Cart,
+    InvoicePaper,
   ],
   synchronize: true,
+  subscribers: [PaperSizeSubsciber],
   host: sanitizedConfig.DB_HOST,
 });

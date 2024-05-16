@@ -3,12 +3,13 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinTable,
   ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-  UpdateDateColumn
+  UpdateDateColumn,
 } from "typeorm";
 import { Brand } from "./brand";
 import { Business } from "./business";
@@ -111,17 +112,17 @@ export class Product extends BaseEntity {
   @Column({ nullable: true, type: "double", default: 0 })
   selling_price_after_discount: number;
 
-  @Column({ nullable: true,default:0 })
+  @Column({ nullable: true, default: 0 })
   quantity: number;
 
   @Column({ default: false })
   isActive: boolean;
 
   @ManyToOne(() => Purchase, (p) => p.products, {
-    cascade:true,
+    cascade: true,
     onUpdate: "CASCADE",
     onDelete: "RESTRICT",
-    nullable:true,
+    nullable: true,
   })
   purchase: Purchase;
 
@@ -136,7 +137,6 @@ export class Product extends BaseEntity {
 
   @UpdateDateColumn()
   udpatedAt: Date;
-
 
   addColor(color: Color) {
     if (this.colors == null) {

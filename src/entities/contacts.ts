@@ -9,6 +9,7 @@ import {
 } from "typeorm";
 import { PaymentDetails } from "./payment";
 import { PaymentOption } from "./paymentoption";
+import { Invoice } from "./invoice";
 
 @Entity()
 export class Contacts {
@@ -43,4 +44,7 @@ export class Contacts {
 
   @OneToMany(() => PaymentOption, (p) => p.contact)
   payment_option: PaymentOption[];
+
+  @OneToMany(() => Invoice, (iv) => iv.contact)
+  invoices: Invoice[];
 }
