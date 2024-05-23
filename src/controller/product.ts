@@ -6,7 +6,7 @@ import {
   Product,
   ProductGroup,
   Unit,
-  Warranty
+  Warranty,
 } from "../entities";
 import { appDataSource } from "../orm.config";
 import { ApiError, deleteFile, prettyError, requestHandler } from "../utils";
@@ -115,7 +115,7 @@ export class ProductController extends Controller<Product> {
               },
             });
             product.addColor(colorEntity);
-          })
+          }),
         ]);
 
         await product.save();
@@ -136,22 +136,82 @@ export class ProductController extends Controller<Product> {
   updateProduct = requestHandler(
     async (req, res, next) => {
       try {
-        const product = await this.repository.findOne({
+        const products = await this.repository.find({
           where: {
-            id: req.params.id,
+            name: req.params.name,
           },
         });
 
-        if (!product) {
+        if (!products.length) {
           return ApiError("Product not found", 404, next);
         }
 
-        const updatedProduct = await this.repository.save({
-          id: req.params.id,
-          ...req.body,
-        });
+        await Promise.all(
+          products.map(async (p) => {
+            await this.repository
+              .createQueryBuilder()
+              .relation("model")
+              .of(p)
+              .set(req.body.model);
 
-        res.status(200).json(updatedProduct);
+            await this.repository
+              .createQueryBuilder()
+              .relation("productGroup")
+              .of(p)
+              .set(req.body.productGroup);
+
+            await this.repository
+              .createQueryBuilder()
+              .relation("brand")
+              .of(p)
+              .set(req.body.brand);
+
+            await this.repository
+              .createQueryBuilder()
+              .relation("unit")
+              .of(p)
+              .set(req.body.unit);
+
+            await this.repository
+              .createQueryBuilder()
+              .relation("warranty")
+              .of(p)
+              .set(req.body.warranty);
+            // Updating the main entity
+            if (req.body.colors && Array.isArray(req.body.colors)) {
+              req.body.colors?.map(async (c) => {
+                if (c == null) return;
+                if (p.colors.filter((color) => color.id === c).length > 0)
+                  return;
+                await this.getRepository(Color)
+                  .createQueryBuilder()
+                  .relation("products")
+                  .of(c)
+                  .add(p);
+              });
+            }
+            await this.repository
+              .createQueryBuilder()
+              .update()
+              .set({
+                name: req.body?.name,
+                description: req.body?.description,
+                selling_price: req.body?.selling_price,
+                isActive: req.body?.isActive?.toString() === "true",
+                alert_quantity: req.body?.alert_quantity
+                  ? Number.parseFloat(req.body.alert_quantity)
+                  : 0,
+                product_type: req.body?.product_type,
+              })
+              .where("id = :id", { id: p.id }) // Using the product's ID for the update
+              .execute();
+          })
+        );
+        res.status(200).json({
+          success: true,
+          status: 200,
+          message: "Product updated successfully",
+        });
       } catch (err) {
         return ApiError(err.message, 404, next);
       }
@@ -159,7 +219,7 @@ export class ProductController extends Controller<Product> {
     {
       body: {} as any,
       params: {
-        id: String.toString(),
+        name: String.toString(),
       } as any,
     }
   );

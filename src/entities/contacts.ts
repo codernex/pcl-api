@@ -1,5 +1,6 @@
 import {
   BaseEntity,
+  BeforeInsert,
   Column,
   Entity,
   JoinColumn,
@@ -13,7 +14,7 @@ import { PaymentOption } from "./paymentoption";
 import { Invoice } from "./invoice";
 
 @Entity()
-export class Contacts  extends BaseEntity{
+export class Contacts extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -27,9 +28,15 @@ export class Contacts  extends BaseEntity{
   email: string;
 
   @Column({nullable:true})
-  credit_limit:number
+  company_name: string;
 
-  @Column({ nullable: true,type:"double" })
+  @Column({ nullable: true })
+  credit_limit: number;
+
+  @Column({ nullable: true, default: 0 })
+  opening_balance: number;
+
+  @Column({ nullable: true, type: "double" })
   due: number;
 
   @Column({ nullable: true })
@@ -54,4 +61,11 @@ export class Contacts  extends BaseEntity{
 
   @OneToMany(() => Invoice, (iv) => iv.contact)
   invoices: Invoice[];
+
+  @BeforeInsert()
+  updateDue() {
+    if (this.opening_balance) {
+      this.due = this.opening_balance;
+    }
+  }
 }

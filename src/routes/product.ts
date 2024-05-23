@@ -12,8 +12,7 @@ productRoutes.route("/").get(getProducts).post(
 );
 
 productRoutes
-    .route("/:id")
+    .route("/:name")
     .patch(upload.array("images"), updateProduct)
-    .delete(deleteProduct)
-    .get(getProduct)
 
+productRoutes.delete('/:id',deleteProduct)

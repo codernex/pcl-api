@@ -118,19 +118,23 @@ export class Product extends BaseEntity {
   @Column({ default: false })
   isActive: boolean;
 
-  @ManyToOne(() => Purchase, (p) => p.products, {
-    cascade: true,
+  @ManyToMany(() => Purchase, (p) => p.products, {
     onUpdate: "CASCADE",
     onDelete: "RESTRICT",
-    nullable: true,
   })
-  purchase: Purchase;
+  purchase: Purchase[];
 
   @Column({ nullable: true })
   sku_id: string;
 
   @Column({ nullable: true, type: "longtext" })
   description: string;
+
+  @Column({ default: false })
+  is_returned_supplier: boolean;
+
+  @Column({ default: false })
+  is_returned: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

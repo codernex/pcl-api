@@ -3,6 +3,8 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   OneToOne,
@@ -18,6 +20,7 @@ export enum PurchaseStatus {
   PENDING = "PENDING",
   RECIVED = "RECIVED",
   CANCELLED = "CANCELLED",
+  RETURNED = "RETURNED",
 }
 
 @Entity()
@@ -42,7 +45,11 @@ export class Purchase {
   @JoinColumn()
   contact: Contacts;
 
-  @OneToMany(() => Product, (p) => p.purchase,{onUpdate:"CASCADE"})
+  @ManyToMany(() => Product, (p) => p.purchase, {
+    onUpdate: "CASCADE",
+    cascade: true,
+  })
+  @JoinTable()
   products: Product[];
 
   @ManyToOne(() => Business, (b) => b.purchase, {
@@ -51,7 +58,7 @@ export class Purchase {
   })
   business: Business;
 
-  @OneToOne(() => PaymentOption, { cascade: true,onUpdate:"CASCADE" })
+  @OneToOne(() => PaymentOption, { cascade: true, onUpdate: "CASCADE" })
   payment: PaymentOption;
 
   @CreateDateColumn()
@@ -59,6 +66,9 @@ export class Purchase {
 
   @UpdateDateColumn()
   updated_at: Date;
+
+  @Column({ nullable: true})
+  returned_at: string;
 
   addProduct(product: Product) {
     if (this.products == null) {

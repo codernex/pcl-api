@@ -10,22 +10,7 @@ export class ContactController extends Controller<Contacts> {
   createContact = requestHandler(
     async (req, res, next) => {
       try {
-        this.validateErr(
-          req.body,
-          "name",
-          "email",
-          "mobile",
-          "bankName",
-          "branchName",
-          "bkashNumber",
-          "nagadNumber",
-          "rocketNumber",
-          "accountName",
-          "accountNumber",
-          "swiftCode",
-          "routingNumber",
-          "primaryPaymentOption"
-        );
+        this.validateErr(req.body, "name", "mobile");
         // Handling Error
 
         // Seller Payment Option
@@ -36,6 +21,10 @@ export class ContactController extends Controller<Contacts> {
         });
 
         const contact = new Contacts();
+
+        if (!req.body.credit_limit) {
+          contact.credit_limit = 0;
+        }
         contact.payment = paymentDetails;
         Object.assign(contact, {
           ...req.body,

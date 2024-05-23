@@ -19,6 +19,8 @@ export class Invoice {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ nullable: true })
+  invoice_id: string;
   @ManyToOne(() => Business)
   @JoinColumn()
   business: Business;
@@ -53,11 +55,11 @@ export class Invoice {
   })
   contact: Contacts;
 
-  @OneToOne(() => PaymentOption)
+  @OneToOne(() => PaymentOption,{eager:true})
   @JoinColumn()
   payment: PaymentOption;
 
-  @OneToMany(() => Cart, (c) => c.invoice)
+  @OneToMany(() => Cart, (c) => c.invoice,{eager:true})
   carts: Cart[];
 
   @CreateDateColumn()

@@ -12,6 +12,9 @@ import { InvoicePaper } from "../entities";
 export class PaperSizeSubsciber
   implements EntitySubscriberInterface<InvoicePaper>
 {
+  listenTo(): string | Function {
+    return InvoicePaper
+  }
   async beforeUpdate(event: UpdateEvent<InvoicePaper>) {
     const entity = event.entity;
     const manager = event.manager;

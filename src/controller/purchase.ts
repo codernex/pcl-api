@@ -86,11 +86,10 @@ export class PurchaseController extends Controller<Purchase> {
           "product",
           "product_type"
         );
-
         this.isValidEnum(PurchaseStatus, req.body.status);
 
         if (!req.user) {
-          throw new Error("Unatuthorized access");
+          throw new Error("Unauthorized access");
         }
 
         const { product, product_type } = req.body as {
@@ -98,17 +97,15 @@ export class PurchaseController extends Controller<Purchase> {
           product_type: ProductType;
         };
 
-        const products: Product[] = [];
         const productData = await ProductController.getProductById(
           product.product_id
         );
-        products.push(productData);
-
         const contactData = await this.getRepository(Contacts)
           .createQueryBuilder()
           .where("id=:contactId", { contactId: req.body.contact_id })
           .getOneOrFail();
 
+        const products: Product[] = [];
         const payment = new PaymentOption();
         payment.type = "Purchase";
         payment.reciver_id = contactData.id;
@@ -123,45 +120,63 @@ export class PurchaseController extends Controller<Purchase> {
         purchase.amount = req.body.purchase_price * product.codes.length;
         purchase.contact = contactData;
         purchase.quantity = product.codes?.length;
-        productData.sku_id = product.codes[0];
-        productData.quantity = 1;
-        productData.quantity = 1;
-        productData.purchase_price = req.body.purchase_Price;
-        productData.product_type = product_type as ProductType;
-        const barCodes = product.codes.slice(1);
-        if (barCodes.length > 0) {
-          for (const code of barCodes) {
-            const newProduct = new Product();
-            const { id, ...data } = productData;
 
-            Object.assign(newProduct, {
-              ...data,
-              sku_id: code,
-            });
-            newProduct.purchase_price = req.body.purchase_price;
-            newProduct.selling_price = productData.selling_price;
-            newProduct.quantity = 1;
-            newProduct.product_type = ProductType.BARCODE;
-            purchase.addProduct(newProduct);
-            await this.getRepository(Product).save(newProduct);
-            products.push(newProduct);
-          }
+        if (!productData.sku_id) {
+          productData.sku_id = product.codes[0];
+          productData.quantity = 1;
+          productData.purchase_price = req.body.purchase_price;
+          productData.product_type = ProductType.BARCODE;
+          await this.saveBarcodes(
+            productData,
+            product.codes.slice(1),
+            req.body.purchase_price,
+            products
+          );
+        } else {
+          await this.saveBarcodes(
+            productData,
+            product.codes,
+            req.body.purchase_price,
+            products
+          );
         }
-        products.forEach((p) => {
-          purchase.addProduct(p);
-        });
         await this.getRepository(Product).save(productData);
-
+        products.forEach((p) => purchase.addProduct(p));
         await this.repository.save(purchase);
         this.success(res, purchase, 201);
       } catch (error) {
         return ApiError(error, 404, next);
       }
     },
-    {
-      body: {} as any,
-    }
+    { body: {} as any }
   );
+
+  private async saveBarcodes(
+    productData: Product,
+    codes: string[],
+    purchasePrice: number,
+    products: Product[]
+  ) {
+    for (const code of codes) {
+      const existingProduct = await this.getRepository(Product).findOne({
+        where: { sku_id: code },
+      });
+      if (existingProduct) {
+        throw new Error(`SKU code ${code} already exists`);
+      }
+
+      const newProduct = new Product();
+      Object.assign(newProduct, { ...productData, sku_id: code });
+      newProduct.purchase_price = purchasePrice;
+      newProduct.selling_price = productData.selling_price;
+      newProduct.quantity = 1;
+      newProduct.product_type = ProductType.BARCODE;
+      await this.getRepository(Product).save(newProduct);
+      products.push(newProduct);
+    }
+
+    return products;
+  }
 
   getPurchase = requestHandler(async (req, res, next) => {
     try {
@@ -171,6 +186,7 @@ export class PurchaseController extends Controller<Purchase> {
         .leftJoinAndSelect("p.products", "products")
         .leftJoinAndSelect("p.contact", "c")
         .where("b.id = :id", { id: req.user?.business.id })
+        .orderBy("p.created_at", "DESC")
         .getMany();
 
       this.success(res, data);
@@ -178,4 +194,29 @@ export class PurchaseController extends Controller<Purchase> {
       return ApiError(error, 404, next);
     }
   });
+
+  returnPurchase = requestHandler(
+    async (req, res, next) => {
+      try {
+        const purchase = await this.getRepository(Purchase).findOneOrFail({
+          where: { id: req.params.id },
+          relations: {
+            products: true,
+          },
+        });
+        purchase.status = PurchaseStatus.RETURNED;
+        purchase.products.forEach((p) => {
+          p.is_returned = true;
+        });
+        purchase.returned_at = new Date(Date.now()).toISOString();
+        await this.getRepository(Purchase).save(purchase);
+        this.success(res, purchase);
+      } catch (error) {
+        return ApiError(error, 404, next);
+      }
+    },
+    {
+      params: {} as { id: number },
+    }
+  );
 }

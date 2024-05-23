@@ -21,7 +21,11 @@ import {
   User,
   Warranty,
 } from "./entities";
-import { PaperSizeSubsciber } from "./subscriber";
+import {
+  InvoiceSubscriber,
+  PaperSizeSubsciber,
+  PurchaseSubscriber
+} from "./subscriber";
 
 export const appDataSource = new DataSource({
   type: "mysql",
@@ -51,6 +55,6 @@ export const appDataSource = new DataSource({
     InvoicePaper,
   ],
   synchronize: true,
-  subscribers: [PaperSizeSubsciber],
+  subscribers: [PaperSizeSubsciber, InvoiceSubscriber, PurchaseSubscriber],
   host: sanitizedConfig.DB_HOST,
 });
