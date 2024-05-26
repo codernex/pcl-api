@@ -1,34 +1,43 @@
-import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from "typeorm";
 import { Product } from "./product";
 import { Image } from "./image";
+import { Brand } from "./brand";
 
 @Entity()
 export class Model {
   @PrimaryGeneratedColumn("uuid")
   id: string;
 
-  @Column({unique:true})
+  @Column({ unique: true })
   name: string;
 
-  @Column({nullable:true})
+  @Column({ nullable: true })
   description: string;
 
-  @Column()
-  productGroup: string;
+  @OneToMany(() => Brand, (b) => b.models, { eager: true })
+  brands: Brand[];
 
-  @Column()
-  brand: string;
-
-  @Column()
-  category: string;
-
-  @OneToOne(()=>Image,{cascade:true,eager:true,onDelete:"CASCADE"})
+  @OneToOne(() => Image, { cascade: true, eager: true, onDelete: "CASCADE" })
   @JoinColumn()
-  image:Image
+  image: Image;
 
   @OneToMany(() => Product, (p) => p.model)
-  products:Product[]
-  
+  products: Product[];
+
   @Column({ default: false })
   isActive: boolean;
+
+  addBrand(brand: Brand) {
+    if (this.brands == null) {
+      this.brands = new Array<Brand>();
+    }
+    this.brands.push(brand);
+  }
 }

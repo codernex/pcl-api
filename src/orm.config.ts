@@ -24,8 +24,11 @@ import {
 import {
   InvoiceSubscriber,
   PaperSizeSubsciber,
-  PurchaseSubscriber
+  PurchaseSubscriber,
 } from "./subscriber";
+import { ProductGroupSubscriber } from "./subscriber/product-group";
+import { CategorySubscriber } from "./subscriber/category";
+import { BrandSubscriber } from "./subscriber/brand";
 
 export const appDataSource = new DataSource({
   type: "mysql",
@@ -55,6 +58,13 @@ export const appDataSource = new DataSource({
     InvoicePaper,
   ],
   synchronize: true,
-  subscribers: [PaperSizeSubsciber, InvoiceSubscriber, PurchaseSubscriber],
+  subscribers: [
+    PaperSizeSubsciber,
+    InvoiceSubscriber,
+    PurchaseSubscriber,
+    ProductGroupSubscriber,
+    CategorySubscriber,
+    BrandSubscriber,
+  ],
   host: sanitizedConfig.DB_HOST,
 });

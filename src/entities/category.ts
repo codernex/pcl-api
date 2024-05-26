@@ -2,12 +2,14 @@ import {
   Column,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Image } from "./image";
 import { Product } from "./product";
+import { Brand } from "./brand";
 
 @Entity()
 export class Category {
@@ -21,14 +23,14 @@ export class Category {
   @Column({ unique: true })
   name: string;
 
-  @Column({nullable:true})
+  @Column({ nullable: true })
   description: string;
 
   @Column()
   productGroup: string;
 
-  @Column()
-  brand: string;
+  @ManyToOne(() => Brand, (b) => b.categories, {onDelete:"CASCADE"})
+  brand: Brand;
 
   @OneToMany(() => Product, (p) => p.category)
   products: Product[];
