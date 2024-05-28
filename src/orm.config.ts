@@ -29,6 +29,7 @@ import {
 import { ProductGroupSubscriber } from "./subscriber/product-group";
 import { CategorySubscriber } from "./subscriber/category";
 import { BrandSubscriber } from "./subscriber/brand";
+import { PurchasedCart } from "./entities/purchased.cart";
 
 export const appDataSource = new DataSource({
   type: "mysql",
@@ -56,6 +57,7 @@ export const appDataSource = new DataSource({
     Invoice,
     Cart,
     InvoicePaper,
+    PurchasedCart,
   ],
   synchronize: true,
   subscribers: [

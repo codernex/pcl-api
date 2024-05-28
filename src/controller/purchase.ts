@@ -5,86 +5,39 @@ import {
   Purchase,
   PurchaseStatus,
 } from "../entities";
-import { PaymentOption } from "../entities/paymentoption";
+import { PaymentOption, PaymentStatus } from "../entities/paymentoption";
+import { PurchasedCart } from "../entities/purchased.cart";
 import { ApiError, generateRandomNumber, requestHandler } from "../utils";
 import { Controller } from "./base";
 import { ProductController } from "./product";
+
+interface ProductInfo {
+  product_id: string;
+  codes: string[];
+  quantity: number;
+  purchase_price: string;
+  product_type: string;
+}
+
+type PurchaseProduct = Product & {
+  purchase_qty: number;
+};
 
 export class PurchaseController extends Controller<Purchase> {
   constructor() {
     super(Purchase);
   }
-
-  createPurchaseWithoutBarcode = requestHandler(
-    async (req, res, next) => {
-      try {
-        this.validateErr(
-          req.body,
-          "contact_id",
-          "purchase_price",
-          "status",
-          "product",
-          "product_type",
-          "quantity"
-        );
-        this.isValidEnum(PurchaseStatus, req.body.status);
-
-        if (!req.user) {
-          throw new Error("Unatuthorized access");
-        }
-
-        const { product, product_type } = req.body as {
-          product: { product_id: string; codes: string[] };
-          product_type: ProductType;
-        };
-
-        const productData = await ProductController.getProductById(
-          product.product_id
-        );
-
-        const contactData = await this.getRepository(Contacts)
-          .createQueryBuilder()
-          .where("id=:contactId", { contactId: req.body.contact_id })
-          .getOneOrFail();
-        const payment = new PaymentOption();
-        payment.type = "Purchase";
-        payment.reciver_id = contactData.id;
-        payment.amount = req.body.purchase_price * req.body.quantity;
-        payment.recived_by = "Supplier";
-        payment.contact = contactData;
-        const purchase = new Purchase();
-        purchase.business = req.user.business;
-        purchase.amount = req.body.purchase_price * req.body.quantity;
-        purchase.contact = contactData;
-        productData.sku_id = generateRandomNumber(12).toString();
-        productData.product_type = product_type as ProductType;
-        purchase.status = req.body.status;
-        purchase.quantity = req.body.quantity;
-        productData.purchase_price = Number.parseFloat(req.body.purchase_price);
-        productData.quantity += req.body.quantity;
-        purchase.payment = payment;
-        purchase.addProduct(productData);
-        await this.getRepository(Product).save(productData);
-        await this.repository.save(purchase);
-        this.success(res, purchase, 201);
-      } catch (error) {
-        return ApiError(error, 404, next);
-      }
-    },
-    {
-      body: {} as any,
-    }
-  );
   createPurchaseWithBarcode = requestHandler(
     async (req, res, next) => {
       try {
         this.validateErr(
           req.body,
           "contact_id",
-          "purchase_price",
           "status",
-          "product",
-          "product_type"
+          "products",
+          "product_type",
+          "amount",
+          "quantity"
         );
         this.isValidEnum(PurchaseStatus, req.body.status);
 
@@ -92,56 +45,74 @@ export class PurchaseController extends Controller<Purchase> {
           throw new Error("Unauthorized access");
         }
 
-        const { product, product_type } = req.body as {
-          product: { product_id: string; codes: string[] };
-          product_type: ProductType;
+        const { products: productsInfo } = req.body as {
+          products: ProductInfo[];
         };
 
-        const productData = await ProductController.getProductById(
-          product.product_id
-        );
+        const amount = Number(req.body.amount) ? Number(req.body.amount) : 0;
+        const paid_amount = Number(req.body.paid_amount)
+          ? Number(req.body.paid_amount)
+          : 0;
+        const due_amount = amount - paid_amount;
         const contactData = await this.getRepository(Contacts)
           .createQueryBuilder()
           .where("id=:contactId", { contactId: req.body.contact_id })
           .getOneOrFail();
+        // Creating Payment for purchase
+        const payment = this.createPayment(contactData, paid_amount, amount);
+        if (payment.payment_status === PaymentStatus.DUE) {
+          contactData.due_from_owner += due_amount > 0 ? due_amount : 0;
 
-        const products: Product[] = [];
-        const payment = new PaymentOption();
-        payment.type = "Purchase";
-        payment.reciver_id = contactData.id;
-        payment.amount = req.body.purchase_price * req.body.quantity;
-        payment.recived_by = "Supplier";
-        payment.contact = contactData;
+          if (contactData.due_from_supplier > 0) {
+            contactData.due_from_supplier -= due_amount > 0 ? due_amount : 0;
+          }
+        }
 
+        // New Purchase record
         const purchase = new Purchase();
         purchase.payment = payment;
         purchase.business = req.user.business;
         purchase.status = req.body.status;
-        purchase.amount = req.body.purchase_price * product.codes.length;
+        purchase.amount = amount;
         purchase.contact = contactData;
-        purchase.quantity = product.codes?.length;
+        purchase.quantity = Number(req.body.quantity);
+        purchase.paid_amount = paid_amount;
 
-        if (!productData.sku_id) {
-          productData.sku_id = product.codes[0];
-          productData.quantity = 1;
-          productData.purchase_price = req.body.purchase_price;
-          productData.product_type = ProductType.BARCODE;
-          await this.saveBarcodes(
-            productData,
-            product.codes.slice(1),
-            req.body.purchase_price,
-            products
+        const products: PurchaseProduct[] = [];
+        // Updating / creating new products in database
+        for (const p of productsInfo) {
+          const productData = await ProductController.getProductById(
+            p.product_id
           );
-        } else {
-          await this.saveBarcodes(
-            productData,
-            product.codes,
-            req.body.purchase_price,
-            products
-          );
+          if (productData.product_type === ProductType.BARCODE) {
+            await this.handleBarcodeProducts(productData, products, p);
+          } else {
+            await this.handleNonBarcodeProducts(productData, products, p);
+          }
         }
-        await this.getRepository(Product).save(productData);
-        products.forEach((p) => purchase.addProduct(p));
+        products.forEach(({ purchase_qty, ...p }) => {
+          purchase.addProduct(p as Product);
+          const cartExist = purchase.purchasedCart?.findIndex(
+            (pc) => pc.name === p.name
+          );
+          if (!!purchase?.purchasedCart?.length && cartExist !== -1) {
+            purchase.purchasedCart[cartExist].quantity += purchase_qty;
+            purchase.purchasedCart[cartExist].sku_id += `, ${p.sku_id}`;
+          } else {
+            console.log("Running THis Portions");
+
+            const cart = new PurchasedCart();
+            Object.assign<any, Partial<PurchasedCart>>(cart, {
+              name: p.name,
+              quantity: purchase_qty,
+              product_type: p.product_type,
+              selling_price: p.selling_price,
+              purchase_price: p.purchase_price,
+              sku_id: p.sku_id,
+            });
+            purchase.addCart(cart);
+          }
+        });
         await this.repository.save(purchase);
         this.success(res, purchase, 201);
       } catch (error) {
@@ -151,11 +122,74 @@ export class PurchaseController extends Controller<Purchase> {
     { body: {} as any }
   );
 
-  private async saveBarcodes(
+  // Creaing payment for purchase
+  private createPayment(
+    contact: Contacts,
+    paid_amount: number,
+    amount: number
+  ): PaymentOption {
+    const payment = new PaymentOption();
+    payment.type = "Purchase";
+    payment.reciver_id = contact.id;
+    payment.amount = paid_amount;
+    payment.recived_by = "Supplier";
+    payment.contact = contact;
+    payment.payment_status =
+      paid_amount < amount ? PaymentStatus.DUE : PaymentStatus.PAID;
+
+    return payment;
+  }
+
+  // Handling Barcode Products
+  private async handleBarcodeProducts(
     productData: Product,
+    products: PurchaseProduct[],
+    p: ProductInfo
+  ) {
+    if (!productData.sku_id) {
+      productData.sku_id = p.codes[0];
+      productData.quantity = 1;
+      productData.purchase_price = Number.parseInt(p.purchase_price);
+      productData.product_type = ProductType.BARCODE;
+      await this.saveBarcodes(
+        productData,
+        p.codes.slice(1),
+        Number.parseInt(p.purchase_price),
+        products
+      );
+    } else {
+      await this.saveBarcodes(
+        productData,
+        p.codes,
+        Number.parseInt(p.purchase_price),
+        products
+      );
+    }
+  }
+
+  // Handling Non Barcode Products
+  private async handleNonBarcodeProducts(
+    productData: Product,
+    products: PurchaseProduct[],
+    p: ProductInfo
+  ) {
+    productData.sku_id = productData.sku_id
+      ? productData.sku_id
+      : generateRandomNumber(12).toString();
+    productData.purchase_price = Number.parseInt(p.purchase_price);
+    productData.quantity += p.quantity;
+    products.push({
+      ...productData,
+      purchase_qty: p.quantity,
+    } as PurchaseProduct);
+  }
+
+  // Saving Barcodes products
+  private async saveBarcodes(
+    { id, ...productData }: Product,
     codes: string[],
     purchasePrice: number,
-    products: Product[]
+    products: PurchaseProduct[]
   ) {
     for (const code of codes) {
       const existingProduct = await this.getRepository(Product).findOne({
@@ -166,18 +200,23 @@ export class PurchaseController extends Controller<Purchase> {
       }
 
       const newProduct = new Product();
-      Object.assign(newProduct, { ...productData, sku_id: code });
+      Object.assign(newProduct, {
+        ...productData,
+        sku_id: code,
+        purchase_qty: 1,
+      });
       newProduct.purchase_price = purchasePrice;
       newProduct.selling_price = productData.selling_price;
       newProduct.quantity = 1;
       newProduct.product_type = ProductType.BARCODE;
-      await this.getRepository(Product).save(newProduct);
-      products.push(newProduct);
+
+      products.push(newProduct as PurchaseProduct);
     }
 
     return products;
   }
 
+  // Get all purchases
   getPurchase = requestHandler(async (req, res, next) => {
     try {
       const data = await this.repository
@@ -185,6 +224,7 @@ export class PurchaseController extends Controller<Purchase> {
         .leftJoinAndSelect("p.business", "b")
         .leftJoinAndSelect("p.products", "products")
         .leftJoinAndSelect("p.contact", "c")
+        .leftJoinAndSelect("p.purchasedCart", "pc")
         .where("b.id = :id", { id: req.user?.business.id })
         .orderBy("p.created_at", "DESC")
         .getMany();
@@ -194,6 +234,8 @@ export class PurchaseController extends Controller<Purchase> {
       return ApiError(error, 404, next);
     }
   });
+
+  // Return Previous purchase
 
   returnPurchase = requestHandler(
     async (req, res, next) => {

@@ -27,17 +27,23 @@ export class Contacts extends BaseEntity {
   @Column()
   email: string;
 
-  @Column({nullable:true})
+  @Column({ nullable: true })
   company_name: string;
 
   @Column({ nullable: true })
   credit_limit: number;
 
   @Column({ nullable: true, default: 0 })
-  opening_balance: number;
+  customer_opening_balance: number;
+
+  @Column({ nullable: true, default: 0 })
+  supplier_opening_balance: number;
 
   @Column({ nullable: true, type: "double" })
-  due: number;
+  due_from_owner: number;
+
+  @Column({ nullable: true })
+  due_from_supplier: number;
 
   @Column({ nullable: true })
   address: string;
@@ -64,8 +70,12 @@ export class Contacts extends BaseEntity {
 
   @BeforeInsert()
   updateDue() {
-    if (this.opening_balance) {
-      this.due = this.opening_balance;
+    if (this.customer_opening_balance) {
+      this.due_from_supplier = this.customer_opening_balance;
+    }
+
+    if (this.supplier_opening_balance) {
+      this.due_from_owner = this.supplier_opening_balance;
     }
   }
 }

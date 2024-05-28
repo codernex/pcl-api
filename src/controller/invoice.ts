@@ -1,4 +1,3 @@
-import { In } from "typeorm";
 import {
   Cart,
   Contacts,
@@ -8,9 +7,8 @@ import {
   PaymentStatus,
   Product,
 } from "../entities";
-import { ApiError, requestHandler } from "../utils";
+import { requestHandler } from "../utils";
 import { Controller } from "./base";
-import { Request } from "express";
 
 export class InvoiceController extends Controller<Invoice> {
   constructor() {
@@ -73,7 +71,10 @@ export class InvoiceController extends Controller<Invoice> {
           if (contact.credit_limit > 0 && contact.credit_limit < due_amount) {
             throw new Error("Credit limit exceeded");
           }
-          contact.due += due_amount;
+          contact.due_from_supplier += due_amount > 0 ? due_amount : 0;
+          if (contact.due_from_owner) {
+            contact.due_from_owner -= due_amount > 0 ? due_amount : 0;
+          }
           await contact.save();
           payment.payment_status = PaymentStatus.DUE;
         } else {
