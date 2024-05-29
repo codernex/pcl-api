@@ -1,4 +1,5 @@
 import {
+  BeforeInsert,
   Column,
   CreateDateColumn,
   Entity,
@@ -39,8 +40,20 @@ export class Purchase {
   @Column()
   quantity: number;
 
+  @Column({ nullable: true ,default:0})
+  discount: number;
+
+  @Column({ nullable: true,default:0 })
+  transport_cost: number;
+
+  @Column({ nullable: true })
+  due:number
+
   @Column()
   amount: number;
+
+  @Column({ nullable: true })
+  total_amount: number;
 
   @Column({ nullable: true })
   paid_amount: number;
@@ -94,5 +107,12 @@ export class Purchase {
       this.purchasedCart = new Array<PurchasedCart>();
     }
     this.purchasedCart.push(cart);
+  }
+
+  @BeforeInsert()
+  beforeInsert() {
+    if (this.transport_cost) {
+      this.total_amount = this.transport_cost + this.amount;
+    }
   }
 }

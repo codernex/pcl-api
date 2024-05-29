@@ -53,7 +53,14 @@ export class PurchaseController extends Controller<Purchase> {
         const paid_amount = Number(req.body.paid_amount)
           ? Number(req.body.paid_amount)
           : 0;
-        const due_amount = amount - paid_amount;
+        const discount = Number(req.body.discount)
+          ? Number(req.body.discount)
+          : 0;
+        const transport_cost = Number(req.body.transport_cost)
+          ? Number(req.body.transport_cost)
+          : 0;
+        const amountAfterDiscount = amount - discount;
+        const due_amount = amountAfterDiscount - paid_amount;
         const contactData = await this.getRepository(Contacts)
           .createQueryBuilder()
           .where("id=:contactId", { contactId: req.body.contact_id })
@@ -73,11 +80,13 @@ export class PurchaseController extends Controller<Purchase> {
         purchase.payment = payment;
         purchase.business = req.user.business;
         purchase.status = req.body.status;
-        purchase.amount = amount;
+        purchase.amount = amountAfterDiscount;
         purchase.contact = contactData;
         purchase.quantity = Number(req.body.quantity);
         purchase.paid_amount = paid_amount;
-
+        purchase.discount = discount;
+        purchase.transport_cost = transport_cost;
+        purchase.due = due_amount > 0 ? due_amount : 0;
         const products: PurchaseProduct[] = [];
         // Updating / creating new products in database
         for (const p of productsInfo) {
