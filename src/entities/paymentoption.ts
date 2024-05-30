@@ -9,6 +9,7 @@ import { Contacts } from "./contacts";
 export enum PaymentMethod {
   CASH = "CASH",
   CREDIT_CARD = "CREDIT_CARD",
+  CREDIT = "CREDIT",
   BKASH = "BKASH",
   BANK_TRANSFER = "BANK_TRANSFER",
   NAGAD = "NAGAD",

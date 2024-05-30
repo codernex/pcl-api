@@ -41,10 +41,12 @@ export class InvoiceController extends Controller<Invoice> {
         const paid_amount = req.body.paid_amount
           ? Number.parseFloat(req.body.paid_amount)
           : 0;
-        const total_amount =
-          Number.parseFloat(req.body.total_amount) + transport_cost;
-        const change_amount = paid_amount - total_amount;
-        const due_amount = total_amount - paid_amount;
+        const discount = req.body.discount ? req.body.discount : 0;
+        const total_amount = Number.parseFloat(req.body.total_amount);
+        const discountAmount = total_amount * (discount / 100);
+        const amount_after_discount = total_amount - discountAmount;
+        const change_amount = paid_amount - amount_after_discount;
+        const due_amount = amount_after_discount - paid_amount;
         const carts = req.body.carts;
 
         if (carts.length === 0) {
@@ -92,6 +94,8 @@ export class InvoiceController extends Controller<Invoice> {
         invoice.change_amount = change_amount > 0 ? change_amount : 0;
         invoice.quantity = totalQty;
         invoice.transport_cost = transport_cost;
+        invoice.discount = discount;
+        invoice.amount_after_discount = amount_after_discount;
 
         if (due_amount > 0) {
           invoice.status = PaymentStatus.DUE;
@@ -118,6 +122,7 @@ export class InvoiceController extends Controller<Invoice> {
         payment_method: PaymentMethod;
         customer_id: number;
         transport_cost: string;
+        discount: number;
       },
     }
   );

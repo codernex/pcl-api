@@ -28,6 +28,12 @@ export class Invoice {
   @Column({ type: "double" })
   total_amount: number;
 
+  @Column({ nullable: true, type: "double" })
+  amount_after_discount: number;
+
+  @Column({ nullable: true, type: "double",default:0 })
+  discount: number;
+
   @Column({ type: "double" })
   paid_amount: number;
 
@@ -42,9 +48,6 @@ export class Invoice {
   @Column()
   quantity: number;
 
-  @Column({ type: "double", nullable: true })
-  discount: number;
-
   @Column()
   status: string;
 
@@ -55,11 +58,11 @@ export class Invoice {
   })
   contact: Contacts;
 
-  @OneToOne(() => PaymentOption,{eager:true})
+  @OneToOne(() => PaymentOption, { eager: true })
   @JoinColumn()
   payment: PaymentOption;
 
-  @OneToMany(() => Cart, (c) => c.invoice,{eager:true})
+  @OneToMany(() => Cart, (c) => c.invoice, { eager: true })
   carts: Cart[];
 
   @CreateDateColumn()

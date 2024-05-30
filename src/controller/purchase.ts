@@ -68,7 +68,7 @@ export class PurchaseController extends Controller<Purchase> {
         // Creating Payment for purchase
         const payment = this.createPayment(contactData, paid_amount, amount);
         if (payment.payment_status === PaymentStatus.DUE) {
-          contactData.due_from_owner += due_amount > 0 ? due_amount : 0;
+          contactData.due_from_owner += due_amount > 0 ? due_amount : 0
 
           if (contactData.due_from_supplier > 0) {
             contactData.due_from_supplier -= due_amount > 0 ? due_amount : 0;
