@@ -40,14 +40,14 @@ export class Purchase {
   @Column()
   quantity: number;
 
-  @Column({ nullable: true ,default:0})
+  @Column({ nullable: true, default: 0 })
   discount: number;
 
-  @Column({ nullable: true,default:0 })
+  @Column({ nullable: true, default: 0 })
   transport_cost: number;
 
   @Column({ nullable: true })
-  due:number
+  due: number;
 
   @Column()
   amount: number;
@@ -83,7 +83,13 @@ export class Purchase {
   })
   business: Business;
 
-  @OneToOne(() => PaymentOption, { cascade: true, onUpdate: "CASCADE" })
+  @OneToOne(() => PaymentOption, {
+    cascade: true,
+    onUpdate: "CASCADE",
+    onDelete: "CASCADE",
+    eager: true,
+  })
+  @JoinColumn()
   payment: PaymentOption;
 
   @CreateDateColumn()

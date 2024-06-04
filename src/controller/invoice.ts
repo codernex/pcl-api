@@ -67,7 +67,13 @@ export class InvoiceController extends Controller<Invoice> {
           .where("id = :id", { id: req.body.customer_id })
           .getOneOrFail();
 
-        const payment = this.createPayment(paid_amount, contact, req);
+        const payment = this.createPayment(
+          amount_after_discount,
+          paid_amount,
+          contact,
+          req,
+          discountAmount
+        );
 
         if (due_amount > 0) {
           if (contact.credit_limit > 0 && contact.credit_limit < due_amount) {
@@ -136,15 +142,26 @@ export class InvoiceController extends Controller<Invoice> {
    * Creating payment option for invoice
    */
 
-  private createPayment(paid_amount: number, contact: Contacts, req: any) {
+  private createPayment(
+    amount: number,
+    paid_amount: number,
+    contact: Contacts,
+    req: any,
+    discount: number
+  ) {
     const payment = new PaymentOption();
-    payment.amount = paid_amount;
+    payment.amount = amount;
+    payment.paid_amount = paid_amount;
     payment.contact = contact;
     payment.type = "SELLS";
-    payment.recived_by = req.user.id.toString();
-    payment.reciver_id = req.user.id;
+    payment.recived_by = contact.name;
+    payment.reciver_id = contact.id;
     payment.payment_method = req.body.payment_method;
-
+    payment.payment_status =
+      paid_amount < amount ? PaymentStatus.DUE : PaymentStatus.PAID;
+    payment.change_amount = paid_amount - amount > 0 ? paid_amount - amount : 0;
+    payment.due_amount = amount - paid_amount > 0 ? amount - paid_amount : 0;
+    payment.discount_amount = discount;
     return payment;
   }
 

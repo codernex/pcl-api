@@ -4,14 +4,13 @@ import {
   Column,
   Entity,
   JoinColumn,
-  ManyToOne,
   OneToMany,
   OneToOne,
-  PrimaryGeneratedColumn,
+  PrimaryGeneratedColumn
 } from "typeorm";
+import { Invoice } from "./invoice";
 import { PaymentDetails } from "./payment";
 import { PaymentOption } from "./paymentoption";
-import { Invoice } from "./invoice";
 
 @Entity()
 export class Contacts extends BaseEntity {
@@ -60,7 +59,7 @@ export class Contacts extends BaseEntity {
     onDelete: "CASCADE",
   })
   @JoinColumn()
-  payment: PaymentDetails;
+  payment_details: PaymentDetails;
 
   @OneToMany(() => PaymentOption, (p) => p.contact)
   payment_option: PaymentOption[];

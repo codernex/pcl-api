@@ -31,7 +31,7 @@ export class Invoice {
   @Column({ nullable: true, type: "double" })
   amount_after_discount: number;
 
-  @Column({ nullable: true, type: "double",default:0 })
+  @Column({ nullable: true, type: "double", default: 0 })
   discount: number;
 
   @Column({ type: "double" })
@@ -58,7 +58,7 @@ export class Invoice {
   })
   contact: Contacts;
 
-  @OneToOne(() => PaymentOption, { eager: true })
+  @OneToOne(() => PaymentOption, { eager: true, cascade: true,onUpdate:"CASCADE",onDelete:"CASCADE" })
   @JoinColumn()
   payment: PaymentOption;
 

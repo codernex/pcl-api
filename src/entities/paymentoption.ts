@@ -1,5 +1,6 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -28,6 +29,18 @@ export class PaymentOption {
 
   @Column()
   amount: number;
+
+  @Column({ nullable: true })
+  paid_amount: number;
+
+  @Column({ nullable: true })
+  discount_amount: number;
+
+  @Column({ nullable: true })
+  change_amount: number;
+
+  @Column({ nullable: true })
+  due_amount: number;
 
   @Column()
   type: string;
@@ -58,4 +71,7 @@ export class PaymentOption {
     referencedColumnName: "id",
   })
   contact: Contacts;
+
+  @CreateDateColumn()
+  created_at: Date
 }

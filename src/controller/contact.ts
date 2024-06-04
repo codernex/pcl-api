@@ -1,6 +1,6 @@
 import { Contacts, PaymentDetails } from "../entities";
-import { Controller } from "./base";
 import { ApiError, requestHandler } from "../utils";
+import { Controller } from "./base";
 
 export class ContactController extends Controller<Contacts> {
   constructor() {
@@ -25,7 +25,7 @@ export class ContactController extends Controller<Contacts> {
         if (!req.body.credit_limit) {
           contact.credit_limit = 0;
         }
-        contact.payment = paymentDetails;
+        contact.payment_details = paymentDetails;
         Object.assign(contact, {
           ...req.body,
         });
@@ -46,8 +46,13 @@ export class ContactController extends Controller<Contacts> {
     try {
       const contacts = await this.repository.find({
         relations: {
-          payment: true,
+          payment_details: true,
           payment_option: true,
+        },
+        order: {
+          payment_option: {
+            created_at:"DESC"
+          },
         },
       });
 

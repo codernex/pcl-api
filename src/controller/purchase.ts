@@ -5,7 +5,11 @@ import {
   Purchase,
   PurchaseStatus,
 } from "../entities";
-import { PaymentOption, PaymentStatus } from "../entities/paymentoption";
+import {
+  PaymentMethod,
+  PaymentOption,
+  PaymentStatus,
+} from "../entities/paymentoption";
 import { PurchasedCart } from "../entities/purchased.cart";
 import { ApiError, generateRandomNumber, requestHandler } from "../utils";
 import { Controller } from "./base";
@@ -66,9 +70,14 @@ export class PurchaseController extends Controller<Purchase> {
           .where("id=:contactId", { contactId: req.body.contact_id })
           .getOneOrFail();
         // Creating Payment for purchase
-        const payment = this.createPayment(contactData, paid_amount, amount);
+        const payment = this.createPayment(
+          contactData,
+          paid_amount,
+          amount,
+          req.user.id
+        );
         if (payment.payment_status === PaymentStatus.DUE) {
-          contactData.due_from_owner += due_amount > 0 ? due_amount : 0
+          contactData.due_from_owner += due_amount > 0 ? due_amount : 0;
 
           if (contactData.due_from_supplier > 0) {
             contactData.due_from_supplier -= due_amount > 0 ? due_amount : 0;
@@ -135,17 +144,23 @@ export class PurchaseController extends Controller<Purchase> {
   private createPayment(
     contact: Contacts,
     paid_amount: number,
-    amount: number
+    amount: number,
+    reciver_id: number
   ): PaymentOption {
     const payment = new PaymentOption();
     payment.type = "Purchase";
-    payment.reciver_id = contact.id;
-    payment.amount = paid_amount;
-    payment.recived_by = "Supplier";
+    payment.reciver_id = reciver_id;
+    payment.amount = amount;
+    payment.paid_amount = paid_amount;
+    payment.recived_by = "Owner";
     payment.contact = contact;
     payment.payment_status =
       paid_amount < amount ? PaymentStatus.DUE : PaymentStatus.PAID;
-
+    payment.payment_method = PaymentStatus.DUE
+      ? PaymentMethod.CREDIT
+      : PaymentMethod.CASH;
+    payment.due_amount = amount - paid_amount > 0 ? amount - paid_amount : 0;
+    payment.change_amount = paid_amount - amount > 0 ? paid_amount - amount : 0;
     return payment;
   }
 
