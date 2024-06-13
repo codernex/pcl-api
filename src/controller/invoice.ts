@@ -41,12 +41,22 @@ export class InvoiceController extends Controller<Invoice> {
         const paid_amount = req.body.paid_amount
           ? Number.parseFloat(req.body.paid_amount)
           : 0;
-        const discount = req.body.discount ? req.body.discount : 0;
         const total_amount = Number.parseFloat(req.body.total_amount);
-        const discountAmount = total_amount * (discount / 100);
-        const amount_after_discount = total_amount - discountAmount;
-        const change_amount = paid_amount - amount_after_discount;
-        const due_amount = amount_after_discount - paid_amount;
+        let discountAmount = req.body.discount || 0;
+        if (req.body.discountType === "PERCENTAGE") {
+          discountAmount = Math.fround((total_amount * discountAmount) / 100);
+        } else {
+          discountAmount = discountAmount;
+        }
+        const amount_after_discount = parseFloat(
+          (total_amount - discountAmount).toFixed(2)
+        );
+        const change_amount = parseFloat(
+          (paid_amount - amount_after_discount).toFixed(2)
+        );
+        const due_amount = parseFloat(
+          (amount_after_discount - paid_amount).toFixed(2)
+        );
         const carts = req.body.carts;
 
         if (carts.length === 0) {
@@ -100,7 +110,11 @@ export class InvoiceController extends Controller<Invoice> {
         invoice.change_amount = change_amount > 0 ? change_amount : 0;
         invoice.quantity = totalQty;
         invoice.transport_cost = transport_cost;
-        invoice.discount = discount;
+        invoice.discountType = req.body.discountType;
+        invoice.discount =
+          req.body.discountType === "PERCENTAGE"
+            ? (discountAmount / total_amount) * 100
+            : discountAmount;
         invoice.amount_after_discount = amount_after_discount;
 
         if (due_amount > 0) {
@@ -129,6 +143,7 @@ export class InvoiceController extends Controller<Invoice> {
         customer_id: number;
         transport_cost: string;
         discount: number;
+        discountType: "FIXED" | "PERCENTAGE";
       },
     }
   );
@@ -154,7 +169,7 @@ export class InvoiceController extends Controller<Invoice> {
     payment.paid_amount = paid_amount;
     payment.contact = contact;
     payment.type = "SELLS";
-    payment.recived_by = contact.name;
+    payment.recived_by = "Owner";
     payment.reciver_id = contact.id;
     payment.payment_method = req.body.payment_method;
     payment.payment_status =

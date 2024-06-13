@@ -21,6 +21,7 @@ import {
   userRoutes,
   warrantyRoutes,
 } from "./routes";
+import { roleRoutes } from "./routes/role";
 
 const mount = async (app: Application) => {
   await appDataSource.initialize();
@@ -48,6 +49,7 @@ const mount = async (app: Application) => {
   app.use("/api/v1/purchase", isAuthenticated, purchaseRoutes);
   app.use("/api/v1/invoices", isAuthenticated, invoiceRoutes);
   app.use("/api/v1/paper", isAuthenticated, paperRoutes);
+  app.use("/api/v1/roles", isAuthenticated, roleRoutes);
 
   app.get("/api/v1/healthz", (_req, res) => {
     res.status(200).json({ status: "ok" });

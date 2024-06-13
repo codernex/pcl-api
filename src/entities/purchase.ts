@@ -17,6 +17,7 @@ import { Contacts } from "./contacts";
 import { Business } from "./business";
 import { PaymentOption } from "./paymentoption";
 import { PurchasedCart } from "./purchased.cart";
+import { Image } from "./image";
 
 export enum PurchaseStatus {
   PENDING = "PENDING",
@@ -57,6 +58,13 @@ export class Purchase {
 
   @Column({ nullable: true })
   paid_amount: number;
+
+  @OneToOne(() => Image,{cascade:true,eager:true})
+  @JoinColumn()
+  memo: Image;
+
+  @Column({ nullable: true })
+  memo_sl: string;
 
   @ManyToOne(() => Contacts, { cascade: true, onUpdate: "CASCADE" })
   @JoinColumn()

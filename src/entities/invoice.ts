@@ -34,6 +34,9 @@ export class Invoice {
   @Column({ nullable: true, type: "double", default: 0 })
   discount: number;
 
+  @Column({ nullable: true,default:"FIXED" })
+  discountType: "FIXED" | "PERCENTAGE";
+
   @Column({ type: "double" })
   paid_amount: number;
 
@@ -58,7 +61,12 @@ export class Invoice {
   })
   contact: Contacts;
 
-  @OneToOne(() => PaymentOption, { eager: true, cascade: true,onUpdate:"CASCADE",onDelete:"CASCADE" })
+  @OneToOne(() => PaymentOption, {
+    eager: true,
+    cascade: true,
+    onUpdate: "CASCADE",
+    onDelete: "CASCADE",
+  })
   @JoinColumn()
   payment: PaymentOption;
 

@@ -1,5 +1,6 @@
 import {
   Contacts,
+  Image,
   Product,
   ProductType,
   Purchase,
@@ -83,9 +84,15 @@ export class PurchaseController extends Controller<Purchase> {
             contactData.due_from_supplier -= due_amount > 0 ? due_amount : 0;
           }
         }
+        // Image
+        const image = this.createImage(req);
 
         // New Purchase record
         const purchase = new Purchase();
+        if (image) {
+          purchase.memo = image;
+        }
+        purchase.memo_sl = req.body.memo_sl;
         purchase.payment = payment;
         purchase.business = req.user.business;
         purchase.status = req.body.status;
@@ -140,6 +147,15 @@ export class PurchaseController extends Controller<Purchase> {
     { body: {} as any }
   );
 
+  // Creating memo image
+
+  private createImage(req: any): Image | null {
+    if (!req.file) return null;
+    const image = new Image();
+    Object.assign(image, req.file);
+    return image;
+  }
+
   // Creaing payment for purchase
   private createPayment(
     contact: Contacts,
@@ -152,7 +168,7 @@ export class PurchaseController extends Controller<Purchase> {
     payment.reciver_id = reciver_id;
     payment.amount = amount;
     payment.paid_amount = paid_amount;
-    payment.recived_by = "Owner";
+    payment.recived_by = "Supplier";
     payment.contact = contact;
     payment.payment_status =
       paid_amount < amount ? PaymentStatus.DUE : PaymentStatus.PAID;
@@ -249,6 +265,7 @@ export class PurchaseController extends Controller<Purchase> {
         .leftJoinAndSelect("p.products", "products")
         .leftJoinAndSelect("p.contact", "c")
         .leftJoinAndSelect("p.purchasedCart", "pc")
+        .leftJoinAndSelect("p.memo", "memo")
         .where("b.id = :id", { id: req.user?.business.id })
         .orderBy("p.created_at", "DESC")
         .getMany();

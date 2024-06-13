@@ -1,53 +1,53 @@
 import {
-    BaseEntity,
-    Column,
-    CreateDateColumn,
-    Entity,
-    PrimaryGeneratedColumn,
-    UpdateDateColumn,
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from "typeorm";
 
 @Entity()
 export class PaymentDetails extends BaseEntity {
-    @PrimaryGeneratedColumn("uuid")
-    id: string;
+  @PrimaryGeneratedColumn("uuid")
+  id: string;
 
-    @Column()
-    bankName: string;
+  @Column({ nullable: true })
+  bankName: string;
 
-    @Column()
-    branchName: string;
+  @Column({ nullable: true })
+  branchName: string;
 
-    @Column()
-    accountName: string;
+  @Column({ nullable: true })
+  accountName: string;
 
-    @Column()
-    accountNumber: string;
+  @Column({ nullable: true })
+  accountNumber: string;
 
-    @Column()
-    swiftCode: string;
+  @Column({ nullable: true })
+  swiftCode: string;
 
-    @Column()
-    routingNumber: string;
+  @Column({ nullable: true })
+  routingNumber: string;
 
-    @Column()
-    mobile: string;
+  @Column({ nullable: true })
+  mobile: string;
 
-    @Column()
-    primaryPaymentOption: string;
+  @Column({ nullable: true })
+  primaryPaymentOption: string;
 
-    @Column()
-    bkashNumber: string;
+  @Column({ nullable: true })
+  bkashNumber: string;
 
-    @Column()
-    nagadNumber: string;
+  @Column({ nullable: true })
+  nagadNumber: string;
 
-    @Column()
-    rocketNumber: string;
+  @Column({ nullable: true })
+  rocketNumber: string;
 
-    @CreateDateColumn()
-    createdAt: Date;
+  @CreateDateColumn()
+  createdAt: Date;
 
-    @UpdateDateColumn()
-    updatedAt: Date;
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

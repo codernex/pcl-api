@@ -1,12 +1,13 @@
 import {
   BaseEntity,
   BeforeInsert,
+  BeforeUpdate,
   Column,
   Entity,
   JoinColumn,
   OneToMany,
   OneToOne,
-  PrimaryGeneratedColumn
+  PrimaryGeneratedColumn,
 } from "typeorm";
 import { Invoice } from "./invoice";
 import { PaymentDetails } from "./payment";
@@ -69,6 +70,17 @@ export class Contacts extends BaseEntity {
 
   @BeforeInsert()
   updateDue() {
+    if (this.customer_opening_balance) {
+      this.due_from_supplier = this.customer_opening_balance;
+    }
+
+    if (this.supplier_opening_balance) {
+      this.due_from_owner = this.supplier_opening_balance;
+    }
+  }
+
+  @BeforeUpdate()
+  updateOpeningBalance() {
     if (this.customer_opening_balance) {
       this.due_from_supplier = this.customer_opening_balance;
     }
