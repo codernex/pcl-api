@@ -17,8 +17,10 @@ import {
   productGroupRoutes,
   productRoutes,
   purchaseRoutes,
+  stockTransferRoutes,
   unitRoutes,
   userRoutes,
+  warehouseRoutes,
   warrantyRoutes,
 } from "./routes";
 import { roleRoutes } from "./routes/role";
@@ -50,6 +52,8 @@ const mount = async (app: Application) => {
   app.use("/api/v1/invoices", isAuthenticated, invoiceRoutes);
   app.use("/api/v1/paper", isAuthenticated, paperRoutes);
   app.use("/api/v1/roles", isAuthenticated, roleRoutes);
+  app.use("/api/v1/warehouse", isAuthenticated, warehouseRoutes);
+  app.use("/api/v1/stock-transfer", isAuthenticated, stockTransferRoutes);
 
   app.get("/api/v1/healthz", (_req, res) => {
     res.status(200).json({ status: "ok" });

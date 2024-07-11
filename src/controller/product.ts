@@ -288,6 +288,38 @@ export class ProductController extends Controller<Product> {
       },
     }
   );
+  getAllProducts = requestHandler(
+    async (req, res, next) => {
+      try {
+        const qb = this.repository
+          .createQueryBuilder("p")
+          .leftJoinAndSelect("p.images", "i")
+          .leftJoinAndSelect("p.colors", "c")
+          .leftJoinAndSelect("p.brand", "b")
+          .leftJoinAndSelect("p.productGroup", "pg")
+          .leftJoinAndSelect("p.category", "cat")
+          .leftJoinAndSelect("p.unit", "u")
+          .leftJoinAndSelect("p.business", "business")
+          .leftJoinAndSelect("p.warranty", "w")
+          .leftJoinAndSelect("p.model", "m");
+        const products = await qb.getMany();
+        this.success(res, products);
+      } catch (error) {
+        return ApiError(error.message, 404, next);
+      }
+    },
+    {
+      query: {
+        cat: String.toString(),
+        brand: String.toString(),
+        model: String.toString(),
+        color: String.toString(),
+        group: String.toString(),
+        warranty: String.toString(),
+        seller: String.toString(),
+      },
+    }
+  );
 
   getProduct = requestHandler(
     async (req, res, next) => {
@@ -333,4 +365,25 @@ export class ProductController extends Controller<Product> {
       .where("p.id = :id", { id })
       .getOneOrFail();
   }
+
+  getProductsByWarehouse = requestHandler(
+    async (req, res, next) => {
+      try {
+        const product = await this.repository.find({
+          where: {
+            warehouse: {
+              id: req.query.warehouseId,
+            },
+          },
+        });
+
+        this.success(res, product);
+      } catch (e) {
+        return ApiError(e.message, 404, next);
+      }
+    },
+    {
+      query: {} as any,
+    }
+  );
 }

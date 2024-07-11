@@ -29,8 +29,12 @@ export abstract class Controller<T extends ObjectLiteral> {
     });
   };
 
-  protected failed = (err: any, next: NextFunction) => {
-    ApiError(err, 404, next);
+  protected failed = (
+    err: any,
+    next: NextFunction,
+    statusCode: number = 404
+  ) => {
+    ApiError(err, statusCode, next);
   };
 
   protected isValidEnum<T>(

@@ -17,19 +17,21 @@ import {
   ProductGroup,
   Purchase,
   Role,
+  StockTransfer,
   Unit,
   User,
   Warranty,
 } from "./entities";
+import { PurchasedCart } from "./entities/purchased.cart";
+import { Warehouse } from "./entities/warehouse";
 import {
   InvoiceSubscriber,
   PaperSizeSubsciber,
   PurchaseSubscriber,
 } from "./subscriber";
-import { ProductGroupSubscriber } from "./subscriber/product-group";
-import { CategorySubscriber } from "./subscriber/category";
 import { BrandSubscriber } from "./subscriber/brand";
-import { PurchasedCart } from "./entities/purchased.cart";
+import { CategorySubscriber } from "./subscriber/category";
+import { ProductGroupSubscriber } from "./subscriber/product-group";
 
 export const appDataSource = new DataSource({
   type: "mysql",
@@ -58,6 +60,8 @@ export const appDataSource = new DataSource({
     Cart,
     InvoicePaper,
     PurchasedCart,
+    Warehouse,
+    StockTransfer,
   ],
   synchronize: true,
   subscribers: [

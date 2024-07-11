@@ -21,6 +21,8 @@ import { ProductGroup } from "./product-group";
 import { Purchase } from "./purchase";
 import { Unit } from "./unit";
 import { Warranty } from "./warranty";
+import { Warehouse } from "./warehouse";
+import { StockTransfer } from "./stock-transfer";
 
 export enum ProductType {
   BARCODE = "BARCODE",
@@ -97,11 +99,19 @@ export class Product extends BaseEntity {
   })
   images: Image[];
 
+  @ManyToOne(() => Warehouse, (w) => w.products, {
+    onUpdate: "CASCADE",
+    onDelete: "CASCADE",
+    nullable: true,
+  })
+  warehouse: Warehouse | null;
+
   @ManyToOne(() => Business, (b) => b.products, {
     onUpdate: "CASCADE",
     onDelete: "CASCADE",
+    nullable: true,
   })
-  business: Business;
+  business: Business | null;
 
   @Column({ type: "double", nullable: true, default: 0 })
   purchase_price: number;
@@ -124,6 +134,12 @@ export class Product extends BaseEntity {
   })
   purchase: Purchase[];
 
+  @ManyToMany(() => StockTransfer, (s) => s.products, {
+    onUpdate: "CASCADE",
+    onDelete: "RESTRICT",
+  })
+  stock_transfer: StockTransfer[];
+
   @Column({ nullable: true })
   sku_id: string;
 
@@ -140,7 +156,10 @@ export class Product extends BaseEntity {
   createdAt: Date;
 
   @UpdateDateColumn()
-  udpatedAt: Date;
+  updatedAt: Date;
+
+  @Column({ nullable: true, default: 0 })
+  warehouseQty: number;
 
   addColor(color: Color) {
     if (this.colors == null) {
