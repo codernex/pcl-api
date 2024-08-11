@@ -23,6 +23,9 @@ import {
   Warranty,
   Granter,
   Supplier,
+  Account,
+  AccountHistory,
+  Expense,
 } from "./entities";
 import { PurchasedCart } from "./entities/purchased.cart";
 import { Warehouse } from "./entities/warehouse";
@@ -66,6 +69,9 @@ export const appDataSource = new DataSource({
     StockTransfer,
     Granter,
     Supplier,
+    Account,
+    AccountHistory,
+    Expense,
   ],
   synchronize: true,
   subscribers: [

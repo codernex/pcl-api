@@ -14,4 +14,5 @@ export * from "./invoice";
 export * from "./paper";
 export * from "./warehouse";
 export * from "./stock-transfer";
-export * from './supplier'
+export * from "./supplier";
+export * from "./account";
