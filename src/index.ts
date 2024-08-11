@@ -10,7 +10,7 @@ import {
   businessRoutes,
   categoryRoutes,
   colorRoutes,
-  contactRoutes,
+  customerRoutes,
   invoiceRoutes,
   modelRoutes,
   paperRoutes,
@@ -22,6 +22,7 @@ import {
   userRoutes,
   warehouseRoutes,
   warrantyRoutes,
+  supplierRoutes,
 } from "./routes";
 import { roleRoutes } from "./routes/role";
 
@@ -38,7 +39,7 @@ const mount = async (app: Application) => {
   // Serve the uploads folder statically
   app.use("/uploads", express.static(uploadFolderPath));
   app.use("/api/v1/users", userRoutes);
-  app.use("/api/v1/contacts", isAuthenticated, contactRoutes);
+  app.use("/api/v1/contacts", isAuthenticated, customerRoutes);
   app.use("/api/v1/products", isAuthenticated, productRoutes);
   app.use("/api/v1/warranties", isAuthenticated, warrantyRoutes);
   app.use("/api/v1/units", isAuthenticated, unitRoutes);
@@ -54,6 +55,7 @@ const mount = async (app: Application) => {
   app.use("/api/v1/roles", isAuthenticated, roleRoutes);
   app.use("/api/v1/warehouse", isAuthenticated, warehouseRoutes);
   app.use("/api/v1/stock-transfer", isAuthenticated, stockTransferRoutes);
+  app.use("/api/v1/supplier", isAuthenticated, supplierRoutes);
 
   app.get("/api/v1/healthz", (_req, res) => {
     res.status(200).json({ status: "ok" });

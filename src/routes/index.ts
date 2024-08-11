@@ -1,5 +1,5 @@
 export * from "./user";
-export * from "./contact";
+export * from "./customer";
 export * from "./color";
 export * from "./category";
 export * from "./brand";
@@ -14,3 +14,4 @@ export * from "./invoice";
 export * from "./paper";
 export * from "./warehouse";
 export * from "./stock-transfer";
+export * from './supplier'

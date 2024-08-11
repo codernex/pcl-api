@@ -13,11 +13,12 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 import { Product } from "./product";
-import { Contacts } from "./contacts";
+import { Customer } from "./customer";
 import { Business } from "./business";
 import { PaymentOption } from "./paymentoption";
 import { PurchasedCart } from "./purchased.cart";
 import { Image } from "./image";
+import { Supplier } from "./supplier";
 
 export enum PurchaseStatus {
   PENDING = "PENDING",
@@ -59,16 +60,16 @@ export class Purchase {
   @Column({ nullable: true })
   paid_amount: number;
 
-  @OneToOne(() => Image,{cascade:true,eager:true})
+  @OneToOne(() => Image, { cascade: true, eager: true })
   @JoinColumn()
   memo: Image;
 
   @Column({ nullable: true })
   memo_sl: string;
 
-  @ManyToOne(() => Contacts, { cascade: true, onUpdate: "CASCADE" })
+  @ManyToOne(() => Customer, { cascade: true, onUpdate: "CASCADE" })
   @JoinColumn()
-  contact: Contacts;
+  contact: Customer;
 
   @ManyToMany(() => Product, (p) => p.purchase, {
     onUpdate: "CASCADE",
@@ -99,6 +100,13 @@ export class Purchase {
   })
   @JoinColumn()
   payment: PaymentOption;
+
+  @ManyToOne(() => Supplier, (s) => s.purchases, {
+    cascade: true,
+    onDelete: "SET NULL",
+    onUpdate: "CASCADE",
+  })
+  supplier: Supplier;
 
   @CreateDateColumn()
   created_at: Date;

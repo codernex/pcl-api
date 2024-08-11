@@ -1,5 +1,5 @@
 import {
-  Contacts,
+  Customer,
   Image,
   Product,
   ProductType,
@@ -66,7 +66,7 @@ export class PurchaseController extends Controller<Purchase> {
           : 0;
         const amountAfterDiscount = amount - discount;
         const due_amount = amountAfterDiscount - paid_amount;
-        const contactData = await this.getRepository(Contacts)
+        const contactData = await this.getRepository(Customer)
           .createQueryBuilder()
           .where("id=:contactId", { contactId: req.body.contact_id })
           .getOneOrFail();
@@ -77,13 +77,7 @@ export class PurchaseController extends Controller<Purchase> {
           amount,
           req.user.id
         );
-        if (payment.payment_status === PaymentStatus.DUE) {
-          contactData.due_from_owner += due_amount > 0 ? due_amount : 0;
-
-          if (contactData.due_from_supplier > 0) {
-            contactData.due_from_supplier -= due_amount > 0 ? due_amount : 0;
-          }
-        }
+       
         // Image
         const image = this.createImage(req);
 
@@ -158,7 +152,7 @@ export class PurchaseController extends Controller<Purchase> {
 
   // Creaing payment for purchase
   private createPayment(
-    contact: Contacts,
+    contact: Customer,
     paid_amount: number,
     amount: number,
     reciver_id: number

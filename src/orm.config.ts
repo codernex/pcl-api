@@ -6,7 +6,7 @@ import {
   Cart,
   Category,
   Color,
-  Contacts,
+  Customer,
   Image,
   Invoice,
   InvoicePaper,
@@ -21,6 +21,8 @@ import {
   Unit,
   User,
   Warranty,
+  Granter,
+  Supplier,
 } from "./entities";
 import { PurchasedCart } from "./entities/purchased.cart";
 import { Warehouse } from "./entities/warehouse";
@@ -43,7 +45,7 @@ export const appDataSource = new DataSource({
     User,
     Role,
     PaymentDetails,
-    Contacts,
+    Customer,
     Product,
     Brand,
     Model,
@@ -62,6 +64,8 @@ export const appDataSource = new DataSource({
     PurchasedCart,
     Warehouse,
     StockTransfer,
+    Granter,
+    Supplier,
   ],
   synchronize: true,
   subscribers: [

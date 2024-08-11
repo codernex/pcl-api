@@ -13,3 +13,4 @@ export * from "./purchase";
 export * from "./paper";
 export * from "./role";
 export * from "./stock-transfer";
+export * from "./supplier";

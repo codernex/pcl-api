@@ -1,6 +1,6 @@
 import {Router} from "express";
 import {BrandController} from "../controller";
-import {upload} from "../utils";
+import {uploadImage} from "../utils";
 
 export const brandRoutes = Router();
 
@@ -10,14 +10,14 @@ brandRoutes
     .route("/")
     .get(getBrands)
     .post(
-        upload.single("image"),
+        uploadImage.single("image"),
         createBrand
     );
 
 brandRoutes
     .route("/:id")
     .patch(
-        upload.single("image"),
+        uploadImage.single("image"),
         updateBrand
     )
     .delete(

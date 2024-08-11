@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { ProductController } from "../controller";
-import { upload } from "../utils";
+import { uploadImage } from "../utils";
 
 export const productRoutes = Router();
 const {
@@ -15,9 +15,9 @@ const {
 productRoutes
   .route("/")
   .get(getProducts)
-  .post(upload.array("images"), createProduct);
+  .post(uploadImage.array("images"), createProduct);
 
-productRoutes.route("/:name").patch(upload.array("images"), updateProduct);
+productRoutes.route("/:name").patch(uploadImage.array("images"), updateProduct);
 
 productRoutes.delete("/:id", deleteProduct);
 

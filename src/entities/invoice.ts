@@ -10,7 +10,7 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 import { Business } from "./business";
-import { Contacts } from "./contacts";
+import { Customer } from "./customer";
 import { PaymentOption } from "./paymentoption";
 import { Cart } from "./cart";
 
@@ -54,12 +54,12 @@ export class Invoice {
   @Column()
   status: string;
 
-  @ManyToOne(() => Contacts, (c) => c.invoices, {
+  @ManyToOne(() => Customer, (c) => c.invoices, {
     cascade: true,
     onUpdate: "CASCADE",
     onDelete: "RESTRICT",
   })
-  contact: Contacts;
+  contact: Customer;
 
   @OneToOne(() => PaymentOption, {
     eager: true,

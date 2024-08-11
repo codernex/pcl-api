@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { PurchaseController } from "../controller";
-import { upload } from "../utils";
+import { uploadImage } from "../utils";
 
 export const purchaseRoutes = Router();
 const { createPurchaseWithBarcode, getPurchase, returnPurchase } =
@@ -8,7 +8,7 @@ const { createPurchaseWithBarcode, getPurchase, returnPurchase } =
 purchaseRoutes.route("/").get(getPurchase);
 purchaseRoutes.post(
   "/barcode",
-  upload.single("image"),
+  uploadImage.single("image"),
   createPurchaseWithBarcode
 );
 purchaseRoutes.patch("/return/:id", returnPurchase);

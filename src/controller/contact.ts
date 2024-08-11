@@ -1,15 +1,16 @@
 import {
-  Contacts,
+  Customer,
+  Granter,
   PaymentDetails,
   PaymentOption,
   PaymentStatus,
 } from "../entities";
-import { ApiError, requestHandler } from "../utils";
+import { ApiError, ErrorHandler, requestHandler } from "../utils";
 import { Controller } from "./base";
 
-export class ContactController extends Controller<Contacts> {
+export class ContactController extends Controller<Customer> {
   constructor() {
-    super(Contacts);
+    super(Customer);
   }
 
   createContact = requestHandler(
@@ -17,20 +18,11 @@ export class ContactController extends Controller<Contacts> {
       try {
         this.validateErr(req.body, "name", "mobile");
         // Handling Error
-
-        // Seller Payment Option
-        const paymentDetails = new PaymentDetails();
-
-        Object.assign(paymentDetails, {
-          ...req.body,
-        });
-
-        const contact = new Contacts();
+        const contact = new Customer();
 
         if (!req.body.credit_limit) {
           contact.credit_limit = 0;
         }
-        contact.payment_details = paymentDetails;
         Object.assign(contact, {
           ...req.body,
         });
@@ -51,7 +43,6 @@ export class ContactController extends Controller<Contacts> {
     try {
       const contacts = await this.repository.find({
         relations: {
-          payment_details: true,
           payment_option: true,
         },
         order: {
@@ -74,25 +65,11 @@ export class ContactController extends Controller<Contacts> {
           where: {
             id: req.params.id,
           },
-          relations: {
-            payment_details: true,
-          },
-        });
-
-        let paymentDetails = contact.payment_details;
-
-        if (!paymentDetails) {
-          paymentDetails = new PaymentDetails();
-        }
-
-        Object.assign(paymentDetails, {
-          ...req.body,
         });
 
         Object.assign(contact, {
           ...req.body,
         });
-        contact.payment_details = paymentDetails;
 
         await this.repository.save(contact);
 
@@ -124,30 +101,21 @@ export class ContactController extends Controller<Contacts> {
           },
         });
 
-        if (!contact.due_from_supplier) {
-          throw new Error("There is no due of this contact");
-        }
-
         const amount = Number.parseFloat(req.body.amount);
 
-        if (amount > contact.due_from_supplier) {
-          throw new Error("Amount is greater than due amount");
-        }
-        const changeAmount = amount - contact.due_from_supplier;
-        const paid_amount = contact.due_from_supplier - amount;
+        const changeAmount = amount - contact.due;
+        const paid_amount = contact.due - amount;
 
         const payment = new PaymentOption();
         payment.type = "COLLECT_DUE";
-        payment.amount = contact.due_from_supplier;
+        payment.amount = contact.due;
         payment.paid_amount = amount;
         payment.payment_method = req.body.paymentMethod;
         payment.payment_status = PaymentStatus.COLLECT_DUE;
-        payment.due_amount =
-          contact.due_from_supplier > 0 ? contact.due_from_supplier : 0;
+        payment.due_amount = contact.due > 0 ? contact.due : 0;
         payment.change_amount = changeAmount > 0 ? changeAmount : 0;
         payment.recived_by = "Owner";
         payment.reciver_id = req.user?.id;
-        contact.due_from_supplier = paid_amount < 0 ? 0 : paid_amount;
         payment.contact = contact;
         await this.getRepository(PaymentOption).save(payment);
         this.success(res, contact, 200);
@@ -161,58 +129,67 @@ export class ContactController extends Controller<Contacts> {
     }
   );
 
-  payDue = requestHandler(
+  addGranter = requestHandler(
     async (req, res, next) => {
       try {
-        this.validateErr(req.body, "amount", "paymentMethod");
-
-        if (!req.user) {
-          throw new Error("Unauthorized user");
-        }
+        this.validateErr(req.body, "name", "mobile", "husband_or_parent_name");
         const contact = await this.repository.findOneOrFail({
           where: {
             id: req.params.id,
           },
           relations: {
-            payment_option: true,
+            granter: true,
           },
         });
+        const granter = new Granter();
+        granter.customer = contact;
+        Object.assign(granter, {
+          ...req.body,
+        });
 
-        if (!contact.due_from_owner) {
-          throw new Error("There is no due to this contact from the owner");
-        }
+        await this.getRepository(Granter).save(granter);
 
-        const amount = Number.parseFloat(req.body.amount);
-
-        if (amount > contact.due_from_owner) {
-          throw new Error("Amount is greater than due amount");
-        }
-        const changeAmount = amount - contact.due_from_owner;
-        const paid_amount = contact.due_from_owner - amount;
-
-        const payment = new PaymentOption();
-        payment.type = "PAY_DUE";
-        payment.amount = contact.due_from_owner;
-        payment.paid_amount = amount;
-        payment.payment_method = req.body.paymentMethod;
-
-        payment.payment_status = PaymentStatus.COLLECT_DUE;
-        payment.due_amount =
-          contact.due_from_owner > 0 ? contact.due_from_owner : 0;
-        payment.change_amount = changeAmount > 0 ? changeAmount : 0;
-        payment.recived_by = "Supplier";
-        payment.reciver_id = contact.id;
-        contact.due_from_owner = paid_amount < 0 ? 0 : paid_amount;
-        payment.contact = contact;
-        await this.getRepository(PaymentOption).save(payment);
-        this.success(res, contact, 200);
+        this.success(res, granter, 200);
       } catch (err) {
-        return ApiError(err, 500, next);
+        this.failed(err, next, 400);
       }
     },
     {
       params: { id: 0 },
       body: {} as any,
+    }
+  );
+
+  uploadDocuments = requestHandler(
+    async (req, res, next) => {
+      this.validateErr(req.params, "id");
+
+      const files = req.files as any[];
+
+      if (!files) {
+        throw new ErrorHandler("File not found", 404);
+      }
+
+      const contact = await this.repository.findOneOrFail({
+        where: {
+          id: parseInt(req.params.id),
+        },
+      });
+
+      let documentStr = "";
+      files.forEach((file) => {
+        documentStr += "/uploads/" + file.filename + ",";
+      });
+
+      contact.documents += documentStr;
+      contact.documents = contact.documents.replace("null", "");
+
+      await this.repository.save(contact);
+
+      this.success(res, contact, 200);
+    },
+    {
+      params: { id: "" },
     }
   );
 }

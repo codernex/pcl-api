@@ -6,7 +6,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
-import { Contacts } from "./contacts";
+import { Customer } from "./customer";
 export enum PaymentMethod {
   CASH = "CASH",
   CREDIT_CARD = "CREDIT_CARD",
@@ -63,7 +63,7 @@ export class PaymentOption {
   @Column({ nullable: true })
   recived_by: string;
 
-  @ManyToOne(() => Contacts, (c) => c.payment_option, {
+  @ManyToOne(() => Customer, (c) => c.payment_option, {
     cascade: true,
     onUpdate: "CASCADE",
   })
@@ -71,7 +71,7 @@ export class PaymentOption {
     name: "contact_id",
     referencedColumnName: "id",
   })
-  contact: Contacts;
+  contact: Customer;
 
   @CreateDateColumn()
   created_at: Date;

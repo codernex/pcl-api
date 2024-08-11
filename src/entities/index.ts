@@ -1,6 +1,6 @@
 export * from "./user";
 export * from "./role";
-export * from "./contacts";
+export * from "./customer";
 export * from "./payment";
 export * from "./product";
 export * from "./product-group";
@@ -20,3 +20,5 @@ export * from "./invoice";
 export * from "./paper";
 export * from "./warehouse";
 export * from "./stock-transfer";
+export * from './supplier'
+export * from './granter'

@@ -1,12 +1,12 @@
 import {Router} from "express";
 import {ModelController} from "../controller";
-import {upload} from "../utils";
+import {uploadImage} from "../utils";
 
 export const modelRoutes = Router();
 const {create, get, update, remove} = new ModelController();
 modelRoutes
     .route("/")
     .get(get)
-    .post( upload.single("image"),create);
+    .post( uploadImage.single("image"),create);
 
-modelRoutes.route("/:id").patch(upload.single("image"), update).delete( remove);
+modelRoutes.route("/:id").patch(uploadImage.single("image"), update).delete( remove);

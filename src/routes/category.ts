@@ -1,6 +1,6 @@
 import {Router} from "express";
 import {CategoryController} from "../controller";
-import {upload} from "../utils";
+import {uploadImage} from "../utils";
 
 export const categoryRoutes = Router();
 const {createCategory, getCategories, updateCategory, removeCategory} =
@@ -11,14 +11,14 @@ categoryRoutes
     .route("/")
     .get(getCategories)
     .post(
-        upload.single("image"),
+        uploadImage.single("image"),
         createCategory
     );
 
 categoryRoutes
     .route("/:id")
     .patch(
-        upload.single("image"),
+        uploadImage.single("image"),
         updateCategory
     )
     .delete(removeCategory);
