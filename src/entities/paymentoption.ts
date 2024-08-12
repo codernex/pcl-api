@@ -9,10 +9,8 @@ import {
 import { Customer } from "./customer";
 export enum PaymentMethod {
   CASH = "CASH",
-  CREDIT_CARD = "CREDIT_CARD",
-  CREDIT = "CREDIT",
   BKASH = "BKASH",
-  BANK_TRANSFER = "BANK_TRANSFER",
+  BANK = "BANK",
   NAGAD = "NAGAD",
   ROCKET = "ROCKET",
 }
@@ -23,6 +21,8 @@ export enum PaymentStatus {
   DUE = "DUE",
   COLLECT_DUE = "COLLECT_DUE",
 }
+
+
 @Entity()
 export class PaymentOption {
   @PrimaryGeneratedColumn()

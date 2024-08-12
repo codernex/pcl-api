@@ -77,7 +77,7 @@ export class PurchaseController extends Controller<Purchase> {
           amount,
           req.user.id
         );
-       
+
         // Image
         const image = this.createImage(req);
 
@@ -166,9 +166,7 @@ export class PurchaseController extends Controller<Purchase> {
     payment.contact = contact;
     payment.payment_status =
       paid_amount < amount ? PaymentStatus.DUE : PaymentStatus.PAID;
-    payment.payment_method = PaymentStatus.DUE
-      ? PaymentMethod.CREDIT
-      : PaymentMethod.CASH;
+    payment.payment_method = PaymentMethod.CASH;
     payment.due_amount = amount - paid_amount > 0 ? amount - paid_amount : 0;
     payment.change_amount = paid_amount - amount > 0 ? paid_amount - amount : 0;
     return payment;

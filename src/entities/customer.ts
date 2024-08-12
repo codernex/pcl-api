@@ -76,6 +76,9 @@ export class Customer extends BaseEntity {
 
   @Column({ nullable: true, type: "text" })
   documents: string;
+
+  @Column({ nullable: true, default: false })
+  approved: boolean;
   
   @CreateDateColumn()
   created_at: Date;

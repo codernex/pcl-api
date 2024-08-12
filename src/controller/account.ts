@@ -18,13 +18,14 @@ export class AccountController extends Controller<Account> {
         this.validateErr(req.body, "accountType");
         this.isValidEnum(AccountType, req.body.accountType as AccountType);
 
-        if (req.body.accountType === AccountType.CASH) {
-          const isExist = await this.repository.findOneBy({
-            accountName: "CASH_REGISTER",
-          });
-          if (isExist) {
-            return this.failed("Cash register already exist", next);
-          }
+        const isExist = await this.repository.findOneBy({
+          accountName: "CASH_REGISTER",
+        });
+        if (isExist) {
+          return this.failed(
+            "CASH_REGISTER is Reserved, Please use other name",
+            next
+          );
         }
 
         const account = new Account();

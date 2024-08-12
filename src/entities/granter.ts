@@ -3,7 +3,7 @@ import {
   Column,
   Entity,
   ManyToOne,
-  PrimaryGeneratedColumn
+  PrimaryGeneratedColumn,
 } from "typeorm";
 import { Customer } from "./customer";
 
@@ -38,6 +38,9 @@ export class Granter extends BaseEntity {
 
   @Column({ nullable: true })
   nationality: string;
+
+  @Column({ nullable: true })
+  relation: string;
 
   @Column({ nullable: true })
   alternative_name: string;

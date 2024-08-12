@@ -192,4 +192,36 @@ export class ContactController extends Controller<Customer> {
       params: { id: "" },
     }
   );
+
+  approveCustomer = requestHandler(
+    async (req, res, next) => {
+      try {
+        this.validateErr(req.params, "id");
+
+        const custoemr = await this.repository.findOne({
+          where: {
+            id: parseInt(req.params.id),
+          },
+        });
+
+        if (!custoemr) {
+          throw new ErrorHandler("Customer not found", 404);
+        }
+
+        if (custoemr.granter.length < 2) {
+          throw new ErrorHandler("Customer must have atleast 2 granter", 404);
+        }
+
+        custoemr.approved = true;
+        await this.repository.save(custoemr);
+
+        this.success(res, custoemr, 200);
+      } catch (error) {
+        this.failed(error, next);
+      }
+    },
+    {
+      params: { id: "" },
+    }
+  );
 }
