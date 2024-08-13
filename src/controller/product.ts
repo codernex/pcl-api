@@ -147,12 +147,6 @@ export class ProductController extends Controller<Product> {
               .relation("unit")
               .of(p)
               .set(req.body.unit);
-
-            await this.repository
-              .createQueryBuilder()
-              .relation("warranty")
-              .of(p)
-              .set(req.body.warranty);
             // Updating the main entity
             await this.repository
               .createQueryBuilder()
@@ -243,7 +237,6 @@ export class ProductController extends Controller<Product> {
         model: String.toString(),
         color: String.toString(),
         group: String.toString(),
-        warranty: String.toString(),
         seller: String.toString(),
       },
     }
@@ -259,7 +252,6 @@ export class ProductController extends Controller<Product> {
           .leftJoinAndSelect("p.category", "cat")
           .leftJoinAndSelect("p.unit", "u")
           .leftJoinAndSelect("p.business", "business")
-          .leftJoinAndSelect("p.warranty", "w")
           .leftJoinAndSelect("p.model", "m");
         const products = await qb.getMany();
         this.success(res, products);
@@ -274,7 +266,6 @@ export class ProductController extends Controller<Product> {
         model: String.toString(),
         color: String.toString(),
         group: String.toString(),
-        warranty: String.toString(),
         seller: String.toString(),
       },
     }
