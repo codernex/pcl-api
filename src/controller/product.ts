@@ -1,12 +1,10 @@
 import {
   Brand,
   Category,
-  Color,
   Model,
   Product,
   ProductGroup,
   Unit,
-  Warranty,
 } from "../entities";
 import { appDataSource } from "../orm.config";
 import { ApiError, deleteFile, prettyError, requestHandler } from "../utils";
@@ -27,11 +25,10 @@ export class ProductController extends Controller<Product> {
           "name",
           "model",
           "productGroup",
-          "product_type",
-          "colors"
+          "product_type"
         );
 
-        const { selling_price, colors, ...data } = req.body;
+        const { selling_price, ...data } = req.body;
 
         // Finding user
         if (!req.user) {
@@ -64,13 +61,6 @@ export class ProductController extends Controller<Product> {
           },
         });
 
-        // Fetching warranty
-        const warranty = await this.getRepository(Warranty).findOne({
-          where: {
-            id: req.body.warranty,
-          },
-        });
-
         // Fetching unit
         const unit = await this.getRepository(Unit).findOneOrFail({
           where: {
@@ -96,7 +86,6 @@ export class ProductController extends Controller<Product> {
             ? Number.parseFloat(req.body.alert_quantity)
             : 0,
           selling_price: Number.parseFloat(selling_price),
-          warranty,
         });
         product.model = model;
         product.category = category;
@@ -104,19 +93,6 @@ export class ProductController extends Controller<Product> {
         product.business = req.user.business;
         product.productGroup = productGroup;
         product.brand = brand;
-
-        // Assigning Product Colors & Sizes
-
-        await Promise.all([
-          colors.map(async (c) => {
-            const colorEntity = await this.getRepository(Color).findOneOrFail({
-              where: {
-                id: c,
-              },
-            });
-            product.addColor(colorEntity);
-          }),
-        ]);
 
         await product.save();
 
@@ -178,26 +154,12 @@ export class ProductController extends Controller<Product> {
               .of(p)
               .set(req.body.warranty);
             // Updating the main entity
-            if (req.body.colors && Array.isArray(req.body.colors)) {
-              req.body.colors?.map(async (c) => {
-                if (c == null) return;
-                if (p.colors.filter((color) => color.id === c).length > 0)
-                  return;
-                await this.getRepository(Color)
-                  .createQueryBuilder()
-                  .relation("products")
-                  .of(c)
-                  .add(p);
-              });
-            }
             await this.repository
               .createQueryBuilder()
               .update()
               .set({
                 name: req.body?.name,
-                description: req.body?.description,
                 selling_price: req.body?.selling_price,
-                isActive: req.body?.isActive?.toString() === "true",
                 alert_quantity: req.body?.alert_quantity
                   ? Number.parseFloat(req.body.alert_quantity)
                   : 0,
@@ -257,13 +219,11 @@ export class ProductController extends Controller<Product> {
         const qb = this.repository
           .createQueryBuilder("p")
           .leftJoinAndSelect("p.images", "i")
-          .leftJoinAndSelect("p.colors", "c")
           .leftJoinAndSelect("p.brand", "b")
           .leftJoinAndSelect("p.productGroup", "pg")
           .leftJoinAndSelect("p.category", "cat")
           .leftJoinAndSelect("p.unit", "u")
           .leftJoinAndSelect("p.business", "business")
-          .leftJoinAndSelect("p.warranty", "w")
           .leftJoinAndSelect("p.model", "m");
 
         qb.where("business.id=:businessId", {
@@ -294,7 +254,6 @@ export class ProductController extends Controller<Product> {
         const qb = this.repository
           .createQueryBuilder("p")
           .leftJoinAndSelect("p.images", "i")
-          .leftJoinAndSelect("p.colors", "c")
           .leftJoinAndSelect("p.brand", "b")
           .leftJoinAndSelect("p.productGroup", "pg")
           .leftJoinAndSelect("p.category", "cat")
@@ -327,12 +286,10 @@ export class ProductController extends Controller<Product> {
         const product = await this.repository
           .createQueryBuilder("p")
           .leftJoinAndSelect("p.images", "i")
-          .leftJoinAndSelect("p.colors", "c")
           .leftJoinAndSelect("p.brand", "b")
           .leftJoinAndSelect("p.productGroup", "pg")
           .leftJoinAndSelect("p.category", "cat")
           .leftJoinAndSelect("p.unit", "u")
-          .leftJoinAndSelect("p.warranty", "w")
           .leftJoinAndSelect("p.model", "m")
           .leftJoinAndSelect("p.user", "user")
           .leftJoinAndSelect("p.reviews", "r")
@@ -355,12 +312,10 @@ export class ProductController extends Controller<Product> {
       .createQueryBuilder("p")
       .leftJoinAndSelect("p.images", "i")
       .leftJoinAndSelect("p.business", "business")
-      .leftJoinAndSelect("p.colors", "c")
       .leftJoinAndSelect("p.brand", "b")
       .leftJoinAndSelect("p.productGroup", "pg")
       .leftJoinAndSelect("p.category", "cat")
       .leftJoinAndSelect("p.unit", "u")
-      .leftJoinAndSelect("p.warranty", "w")
       .leftJoinAndSelect("p.model", "m")
       .where("p.id = :id", { id })
       .getOneOrFail();

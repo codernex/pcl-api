@@ -10,6 +10,7 @@ import {
 import { Invoice } from "./invoice";
 import { PaymentOption } from "./paymentoption";
 import { Granter } from "./granter";
+import { Installments } from "./installment";
 
 @Entity()
 export class Customer extends BaseEntity {
@@ -79,7 +80,13 @@ export class Customer extends BaseEntity {
 
   @Column({ nullable: true, default: false })
   approved: boolean;
-  
+
+  @OneToMany(() => Installments, (installments) => installments.customer, {
+    onUpdate: "CASCADE",
+    onDelete: "RESTRICT",
+  })
+  installments: Installments[];
+
   @CreateDateColumn()
   created_at: Date;
 

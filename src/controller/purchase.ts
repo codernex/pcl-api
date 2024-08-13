@@ -1,5 +1,5 @@
 import {
-  Customer,
+  Supplier,
   Image,
   Product,
   ProductType,
@@ -61,12 +61,9 @@ export class PurchaseController extends Controller<Purchase> {
         const discount = Number(req.body.discount)
           ? Number(req.body.discount)
           : 0;
-        const transport_cost = Number(req.body.transport_cost)
-          ? Number(req.body.transport_cost)
-          : 0;
         const amountAfterDiscount = amount - discount;
         const due_amount = amountAfterDiscount - paid_amount;
-        const contactData = await this.getRepository(Customer)
+        const contactData = await this.getRepository(Supplier)
           .createQueryBuilder()
           .where("id=:contactId", { contactId: req.body.contact_id })
           .getOneOrFail();
@@ -91,11 +88,10 @@ export class PurchaseController extends Controller<Purchase> {
         purchase.business = req.user.business;
         purchase.status = req.body.status;
         purchase.amount = amountAfterDiscount;
-        purchase.contact = contactData;
+        purchase.supplier = contactData;
         purchase.quantity = Number(req.body.quantity);
         purchase.paid_amount = paid_amount;
         purchase.discount = discount;
-        purchase.transport_cost = transport_cost;
         purchase.due = due_amount > 0 ? due_amount : 0;
         const products: PurchaseProduct[] = [];
         // Updating / creating new products in database
@@ -141,6 +137,26 @@ export class PurchaseController extends Controller<Purchase> {
     { body: {} as any }
   );
 
+  // Get all purchases
+  getPurchase = requestHandler(async (req, res, next) => {
+    try {
+      const data = await this.repository
+        .createQueryBuilder("p")
+        .leftJoinAndSelect("p.business", "b")
+        .leftJoinAndSelect("p.products", "products")
+        .leftJoinAndSelect("p.supplier", "s")
+        .leftJoinAndSelect("p.purchasedCart", "pc")
+        .leftJoinAndSelect("p.memo", "memo")
+        .where("b.id = :id", { id: req.user?.business.id })
+        .orderBy("p.created_at", "DESC")
+        .getMany();
+
+      this.success(res, data);
+    } catch (error) {
+      return ApiError(error, 404, next);
+    }
+  });
+
   // Creating memo image
 
   private createImage(req: any): Image | null {
@@ -152,7 +168,7 @@ export class PurchaseController extends Controller<Purchase> {
 
   // Creaing payment for purchase
   private createPayment(
-    contact: Customer,
+    contact: Supplier,
     paid_amount: number,
     amount: number,
     reciver_id: number
@@ -163,7 +179,7 @@ export class PurchaseController extends Controller<Purchase> {
     payment.amount = amount;
     payment.paid_amount = paid_amount;
     payment.recived_by = "Supplier";
-    payment.contact = contact;
+    payment.supplier = contact;
     payment.payment_status =
       paid_amount < amount ? PaymentStatus.DUE : PaymentStatus.PAID;
     payment.payment_method = PaymentMethod.CASH;
@@ -247,26 +263,6 @@ export class PurchaseController extends Controller<Purchase> {
 
     return products;
   }
-
-  // Get all purchases
-  getPurchase = requestHandler(async (req, res, next) => {
-    try {
-      const data = await this.repository
-        .createQueryBuilder("p")
-        .leftJoinAndSelect("p.business", "b")
-        .leftJoinAndSelect("p.products", "products")
-        .leftJoinAndSelect("p.contact", "c")
-        .leftJoinAndSelect("p.purchasedCart", "pc")
-        .leftJoinAndSelect("p.memo", "memo")
-        .where("b.id = :id", { id: req.user?.business.id })
-        .orderBy("p.created_at", "DESC")
-        .getMany();
-
-      this.success(res, data);
-    } catch (error) {
-      return ApiError(error, 404, next);
-    }
-  });
 
   // Return Previous purchase
 

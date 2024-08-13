@@ -10,7 +10,7 @@ export class ProductGroupController extends Controller<ProductGroup> {
     create = requestHandler(
         async (req, res, next) => {
             try {
-                this.validateErr(req.body, "name", "description");
+                this.validateErr(req.body, "name");
 
                 const productGroup = await this.repository.save({
                     ...req.body,

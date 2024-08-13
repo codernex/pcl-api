@@ -9,7 +9,6 @@ import {
   brandRoutes,
   businessRoutes,
   categoryRoutes,
-  colorRoutes,
   customerRoutes,
   invoiceRoutes,
   modelRoutes,
@@ -21,7 +20,6 @@ import {
   unitRoutes,
   userRoutes,
   warehouseRoutes,
-  warrantyRoutes,
   supplierRoutes,
   accountRoutes,
   expenseRoutes,
@@ -43,12 +41,10 @@ const mount = async (app: Application) => {
   app.use("/api/v1/users", userRoutes);
   app.use("/api/v1/contacts", isAuthenticated, customerRoutes);
   app.use("/api/v1/products", isAuthenticated, productRoutes);
-  app.use("/api/v1/warranties", isAuthenticated, warrantyRoutes);
   app.use("/api/v1/units", isAuthenticated, unitRoutes);
   app.use("/api/v1/categories", isAuthenticated, categoryRoutes);
   app.use("/api/v1/models", isAuthenticated, modelRoutes);
   app.use("/api/v1/product-groups", isAuthenticated, productGroupRoutes);
-  app.use("/api/v1/colors", isAuthenticated, colorRoutes);
   app.use("/api/v1/brands", isAuthenticated, brandRoutes);
   app.use("/api/v1/business", isAuthenticated, businessRoutes);
   app.use("/api/v1/purchase", isAuthenticated, purchaseRoutes);

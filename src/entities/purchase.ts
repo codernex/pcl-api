@@ -45,9 +45,6 @@ export class Purchase {
   @Column({ nullable: true, default: 0 })
   discount: number;
 
-  @Column({ nullable: true, default: 0 })
-  transport_cost: number;
-
   @Column({ nullable: true })
   due: number;
 
@@ -66,10 +63,6 @@ export class Purchase {
 
   @Column({ nullable: true })
   memo_sl: string;
-
-  @ManyToOne(() => Customer, { cascade: true, onUpdate: "CASCADE" })
-  @JoinColumn()
-  contact: Customer;
 
   @ManyToMany(() => Product, (p) => p.purchase, {
     onUpdate: "CASCADE",
@@ -129,12 +122,5 @@ export class Purchase {
       this.purchasedCart = new Array<PurchasedCart>();
     }
     this.purchasedCart.push(cart);
-  }
-
-  @BeforeInsert()
-  beforeInsert() {
-    if (this.transport_cost) {
-      this.total_amount = this.transport_cost + this.amount;
-    }
   }
 }

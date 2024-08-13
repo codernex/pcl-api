@@ -6,14 +6,14 @@ export class ProductGroup {
   @PrimaryGeneratedColumn("uuid")
   id: string;
 
-  @Column({unique:true})
+  @Column({ unique: true })
   name: string;
 
-  @Column()
+  @Column({ nullable: true })
   description: string;
 
-  @OneToMany(()=>Product,p=>p.productGroup)
-  products:Product[]
+  @OneToMany(() => Product, (p) => p.productGroup)
+  products: Product[];
 
   @Column({ default: false })
   isActive: boolean;

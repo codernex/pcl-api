@@ -4,8 +4,6 @@ export * from "./category";
 export * from "./brand";
 export * from "./model";
 export * from "./product-group";
-export * from "./color";
-export * from "./warranty";
 export * from "./unit";
 export * from "./product";
 export * from "./business";

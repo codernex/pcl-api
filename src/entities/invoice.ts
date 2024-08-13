@@ -13,6 +13,7 @@ import { Business } from "./business";
 import { Customer } from "./customer";
 import { PaymentOption } from "./paymentoption";
 import { Cart } from "./cart";
+import { Installments } from "./installment";
 
 @Entity()
 export class Invoice {
@@ -34,7 +35,7 @@ export class Invoice {
   @Column({ nullable: true, type: "double", default: 0 })
   discount: number;
 
-  @Column({ nullable: true,default:"FIXED" })
+  @Column({ nullable: true, default: "FIXED" })
   discountType: "FIXED" | "PERCENTAGE";
 
   @Column({ type: "double" })
@@ -45,9 +46,13 @@ export class Invoice {
 
   @Column({ type: "double", nullable: true })
   transport_cost: number;
+
   @Column({ nullable: true, type: "double" })
   change_amount: number;
 
+  @Column({ nullable: true })
+  sales_type: string;
+  
   @Column()
   quantity: number;
 
@@ -72,6 +77,9 @@ export class Invoice {
 
   @OneToMany(() => Cart, (c) => c.invoice, { eager: true })
   carts: Cart[];
+
+  @OneToMany(() => Installments, (iv) => iv.invoice)
+  installments: Installments[];
 
   @CreateDateColumn()
   created_at: Date;

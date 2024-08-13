@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Customer } from "./customer";
+import { Supplier } from "./supplier";
 export enum PaymentMethod {
   CASH = "CASH",
   BKASH = "BKASH",
@@ -21,7 +22,6 @@ export enum PaymentStatus {
   DUE = "DUE",
   COLLECT_DUE = "COLLECT_DUE",
 }
-
 
 @Entity()
 export class PaymentOption {
@@ -72,6 +72,16 @@ export class PaymentOption {
     referencedColumnName: "id",
   })
   contact: Customer;
+
+  @ManyToOne(() => Supplier, (s) => s.paymentOptions, {
+    cascade: true,
+    onUpdate: "CASCADE",
+  })
+  @JoinColumn({
+    name: "supplier_id",
+    referencedColumnName: "id",
+  })
+  supplier: Supplier;
 
   @CreateDateColumn()
   created_at: Date;

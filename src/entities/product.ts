@@ -14,13 +14,11 @@ import {
 import { Brand } from "./brand";
 import { Business } from "./business";
 import { Category } from "./category";
-import { Color } from "./color";
 import { Image } from "./image";
 import { Model } from "./model";
 import { ProductGroup } from "./product-group";
 import { Purchase } from "./purchase";
 import { Unit } from "./unit";
-import { Warranty } from "./warranty";
 import { Warehouse } from "./warehouse";
 import { StockTransfer } from "./stock-transfer";
 
@@ -72,20 +70,6 @@ export class Product extends BaseEntity {
   })
   brand: Brand;
 
-  @ManyToOne(() => Warranty, (w) => w.products, {
-    eager: true,
-    cascade: true,
-    onUpdate: "CASCADE",
-    onDelete: "RESTRICT",
-  })
-  warranty: Warranty | null;
-
-  @ManyToMany(() => Color, (c) => c.products, {
-    eager: true,
-  })
-  @JoinTable()
-  colors: Color[];
-
   @ManyToOne(() => Unit, (u) => u.products, {
     cascade: true,
     eager: true,
@@ -125,9 +109,6 @@ export class Product extends BaseEntity {
   @Column({ nullable: true, default: 0 })
   quantity: number;
 
-  @Column({ default: false })
-  isActive: boolean;
-
   @ManyToMany(() => Purchase, (p) => p.products, {
     onUpdate: "CASCADE",
     onDelete: "RESTRICT",
@@ -143,8 +124,6 @@ export class Product extends BaseEntity {
   @Column({ nullable: true })
   sku_id: string;
 
-  @Column({ nullable: true, type: "longtext" })
-  description: string;
 
   @Column({ default: false })
   is_returned_supplier: boolean;
@@ -160,11 +139,4 @@ export class Product extends BaseEntity {
 
   @Column({ nullable: true, default: 0 })
   warehouseQty: number;
-
-  addColor(color: Color) {
-    if (this.colors == null) {
-      this.colors = new Array<Color>();
-    }
-    this.colors.push(color);
-  }
 }

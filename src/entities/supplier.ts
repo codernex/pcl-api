@@ -1,5 +1,6 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   OneToMany,
@@ -8,6 +9,7 @@ import {
 } from "typeorm";
 import { PaymentDetails } from "./payment";
 import { Purchase } from "./purchase";
+import { PaymentOption } from "./paymentoption";
 
 @Entity()
 export class Supplier {
@@ -43,4 +45,12 @@ export class Supplier {
     onUpdate: "CASCADE",
   })
   purchases: Purchase[];
+
+  @OneToMany(() => PaymentOption, (paymentOption) => paymentOption.supplier, {
+    onUpdate: "CASCADE",
+  })
+  paymentOptions: PaymentOption[];
+
+  @CreateDateColumn()
+  createdAt: Date;
 }

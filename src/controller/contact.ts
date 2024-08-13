@@ -44,6 +44,7 @@ export class ContactController extends Controller<Customer> {
       const contacts = await this.repository.find({
         relations: {
           payment_option: true,
+          installments: true,
         },
         order: {
           payment_option: {
