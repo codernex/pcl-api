@@ -5,7 +5,8 @@ import {
   AccountType,
   TransactionType,
 } from "../entities";
-import { requestHandler } from "../utils";
+import { appDataSource } from "../orm.config";
+import { ErrorHandler, requestHandler } from "../utils";
 import { Controller } from "./base";
 
 export class AccountController extends Controller<Account> {
@@ -18,12 +19,14 @@ export class AccountController extends Controller<Account> {
         this.validateErr(req.body, "accountType");
         this.isValidEnum(AccountType, req.body.accountType as AccountType);
 
-        const isExist = await this.repository.findOneBy({
-          accountName: "CASH_REGISTER",
+        const isExist = await this.repository.findOne({
+          where: {
+            accountName: "Cash Book",
+          },
         });
         if (isExist) {
           return this.failed(
-            "CASH_REGISTER is Reserved, Please use other name",
+            "Cash Book is Reserved, Please use other name",
             next
           );
         }
@@ -60,25 +63,30 @@ export class AccountController extends Controller<Account> {
   updateCashRegister = requestHandler(
     async (req, res, next) => {
       try {
-        this.validateErr(req.params, "id");
         this.validateErr(req.body, "accountState");
         this.isValidEnum(AccountState, req.body.accountState as AccountState);
-        const account = await this.repository.findOneBy({
-          id: Number(req.params.id),
-        });
-        if (!account) {
-          return this.failed("Account not found", next);
-        }
+        const account = await AccountController.currentAccount();
+        Object.assign(account, req.body);
+        await this.repository.save(account);
         return this.success(res, account);
       } catch (err) {
         return this.failed(err, next);
       }
     },
     {
-      params: {
-        id: "",
-      },
       body: {} as any,
     }
   );
+  static async currentAccount(): Promise<Account> {
+    const account = await appDataSource.getRepository(Account).findOne({
+      where: {
+        accountName: "Cash Book",
+      },
+    });
+
+    if (!account) {
+      throw new ErrorHandler("Cash Book Not found", 404);
+    }
+    return account;
+  }
 }

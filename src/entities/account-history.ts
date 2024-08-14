@@ -28,7 +28,7 @@ export class AccountHistory {
   })
   account: Account;
 
-  @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
+  @Column({ type: "double" })
   amount: number;
 
   @CreateDateColumn()

@@ -29,12 +29,6 @@ export class Customer extends BaseEntity {
   @Column({ nullable: true })
   email: string;
 
-  @Column({ nullable: true })
-  credit_limit: number;
-
-  @Column({ nullable: true, default: 0 })
-  opening_balance: number;
-
   @Column({ nullable: true, default: 0 })
   due: number;
 
@@ -55,12 +49,6 @@ export class Customer extends BaseEntity {
 
   @Column({ nullable: true })
   nationality: string;
-
-  @Column({ nullable: true })
-  alternative_name: string;
-
-  @Column({ nullable: true })
-  alternative_number: string;
 
   @OneToMany(() => PaymentOption, (p) => p.contact)
   payment_option: PaymentOption[];

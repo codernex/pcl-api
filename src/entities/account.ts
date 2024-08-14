@@ -10,11 +10,6 @@ import { AccountHistory } from "./account-history";
 
 export enum AccountType {
   CASH = "CASH",
-  BANK = "BANK",
-  BKASH = "BKASH",
-  NAGAD = "NAGAD",
-  ROCKET = "ROCKET",
-  INSTALLMENT = "INSTALLMENT",
 }
 
 export enum AccountState {
@@ -52,7 +47,7 @@ export class Account {
   })
   accountHistory: AccountHistory[];
 
-  @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
+  @Column({ type: "double", default: 0 })
   balance: number;
 
   @CreateDateColumn()

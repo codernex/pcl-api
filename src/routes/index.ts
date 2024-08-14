@@ -15,3 +15,4 @@ export * from "./stock-transfer";
 export * from "./supplier";
 export * from "./account";
 export * from "./expense";
+export * from "./expense-type";

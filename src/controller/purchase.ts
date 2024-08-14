@@ -275,9 +275,47 @@ export class PurchaseController extends Controller<Purchase> {
             products: true,
           },
         });
-        purchase.status = PurchaseStatus.RETURNED;
+        /**
+         * Purchase Return Status
+         */
+        if (req.body.returnType === "partial") {
+          purchase.status = PurchaseStatus.PARTIAL_RETURN;
+        } else {
+          purchase.status = PurchaseStatus.RETURNED;
+        }
+
+        if (req.body?.returnQty > purchase.quantity) {
+          throw new Error("Invalid quantity");
+        }
+
+        /**
+         * Product quantity update
+         */
+        purchase.returned_qty += req.body?.returnQty;
         purchase.products.forEach((p) => {
-          p.is_returned = true;
+          if (p.product_type === ProductType.NON_BARCODE) {
+            if (req.body.returnType === "partial" && req.body.returnQty > 0) {
+              p.quantity =
+                p.quantity - req.body?.returnQty > 0
+                  ? p.quantity - req.body?.returnQty
+                  : 0;
+            } else if (req.body.returnType === "all") {
+              p.quantity =
+                p.quantity - purchase.quantity > 0
+                  ? p.quantity - purchase.quantity
+                  : 0;
+            }
+          } else if (p.product_type === ProductType.BARCODE) {
+            if (req.body.returnType === "partial") {
+              if (req.body?.sku_ids?.includes(p.sku_id)) {
+                p.quantity = 0;
+                p.is_returned = true;
+              }
+            } else if (req.body.returnType === "all") {
+              p.quantity = 0;
+              p.is_returned = true;
+            }
+          }
         });
         purchase.returned_at = new Date(Date.now()).toISOString();
         await this.getRepository(Purchase).save(purchase);
@@ -288,6 +326,11 @@ export class PurchaseController extends Controller<Purchase> {
     },
     {
       params: {} as { id: number },
+      body: {
+        returnQty: 0,
+        returnType: "all",
+        sku_ids: [],
+      } as any,
     }
   );
 }

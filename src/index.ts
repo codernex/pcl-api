@@ -23,6 +23,7 @@ import {
   supplierRoutes,
   accountRoutes,
   expenseRoutes,
+  expenseTypeRoutes,
 } from "./routes";
 import { roleRoutes } from "./routes/role";
 
@@ -56,6 +57,7 @@ const mount = async (app: Application) => {
   app.use("/api/v1/supplier", isAuthenticated, supplierRoutes);
   app.use("/api/v1/accounts", isAuthenticated, accountRoutes);
   app.use("/api/v1/expense", isAuthenticated, expenseRoutes);
+  app.use("/api/v1/expense-types", isAuthenticated, expenseTypeRoutes);
   app.get("/api/v1/healthz", (_req, res) => {
     res.status(200).json({ status: "ok" });
   });

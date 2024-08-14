@@ -20,9 +20,6 @@ export class ContactController extends Controller<Customer> {
         // Handling Error
         const contact = new Customer();
 
-        if (!req.body.credit_limit) {
-          contact.credit_limit = 0;
-        }
         Object.assign(contact, {
           ...req.body,
         });

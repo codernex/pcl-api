@@ -1,5 +1,7 @@
 import { format } from "date-fns";
 import {
+  Account,
+  AccountHistory,
   Cart,
   Customer,
   Installments,
@@ -8,9 +10,11 @@ import {
   PaymentOption,
   PaymentStatus,
   Product,
+  TransactionType,
 } from "../entities";
-import { requestHandler } from "../utils";
+import { ErrorHandler, requestHandler } from "../utils";
 import { Controller } from "./base";
+import { AccountController } from "./account";
 
 export class InvoiceController extends Controller<Invoice> {
   constructor() {
@@ -45,7 +49,8 @@ export class InvoiceController extends Controller<Invoice> {
           ? Number.parseFloat(req.body.paid_amount)
           : 0;
         const total_amount = Number.parseFloat(req.body.total_amount);
-        let discountAmount = req.body.discount || 0;
+        let discountAmount =
+          Number.parseFloat(req.body.discount?.toString()) || 0;
         if (req.body.discountType === "PERCENTAGE") {
           discountAmount = Math.fround((total_amount * discountAmount) / 100);
         } else {
@@ -90,9 +95,6 @@ export class InvoiceController extends Controller<Invoice> {
         );
 
         if (due_amount > 0) {
-          if (contact.credit_limit > 0 && contact.credit_limit < due_amount) {
-            throw new Error("Credit limit exceeded");
-          }
           contact.due += due_amount > 0 ? due_amount : 0;
           await contact.save();
           payment.payment_status = PaymentStatus.DUE;
@@ -115,23 +117,27 @@ export class InvoiceController extends Controller<Invoice> {
           due_amount
         );
 
+        let installments: Installments[] = [];
         // Creating installment For this Invoice
-        if (req.body.salesType === "HIRE") {
-          await this.createInstallment(
+        if (req.body.salesType === "HIRE" && contact.approved) {
+          installments = await this.createInstallment(
             invoice,
             contact,
             due_amount,
             req.body.installment_period
           );
+        } else if (req.body.salesType === "HIRE" && !contact.approved) {
+          throw new ErrorHandler("Customer is not approved", 400);
         }
 
         const cartsData: Cart[] = [];
 
         // Creating cart for invoice
         await this.addToCarts(carts, invoice, cartsData);
-
+        await this.updateAccount(paid_amount - change_amount || 0);
         await this.repository.save(invoice);
-        this.success(res, { ...invoice, carts: cartsData }, 201);
+
+        this.success(res, { ...invoice, carts: cartsData, installments }, 201);
       } catch (error) {
         this.failed(error, next);
       }
@@ -294,9 +300,9 @@ export class InvoiceController extends Controller<Invoice> {
     contact: Customer,
     due_amount: number,
     installment_period: number
-  ) {
-    const installment_amount = due_amount / installment_period;
-
+  ): Promise<Installments[]> {
+    const installment_amount = Math.round(due_amount / installment_period);
+    const installments: Installments[] = [];
     for (let i = 1; i <= installment_period; i++) {
       const installment = new Installments();
       installment.amount = installment_amount;
@@ -312,6 +318,22 @@ export class InvoiceController extends Controller<Invoice> {
 
       // Save the installment to the database (assuming you have a repository for Installments)
       await this.getRepository(Installments).save(installment);
+
+      installments.push(installment);
     }
+    return installments;
+  }
+
+  private async updateAccount(amount: number) {
+    /**
+     * Update Cash Book
+     */
+    const account = await AccountController.currentAccount();
+    account.balance += amount;
+    const history = new AccountHistory();
+    history.account = account;
+    history.amount = amount;
+    history.transactionType = TransactionType.CREDIT;
+    await this.getRepository(AccountHistory).save(history);
   }
 }

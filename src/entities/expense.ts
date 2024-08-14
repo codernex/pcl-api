@@ -2,9 +2,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
-  UpdateDateColumn
+  UpdateDateColumn,
 } from "typeorm";
+import { ExpenseType } from "./expense-type";
 
 @Entity()
 export class Expense {
@@ -17,8 +20,12 @@ export class Expense {
   @Column()
   amount: number;
 
-  @Column()
-  expenseType: string;
+  @ManyToOne(() => ExpenseType, (et) => et.expenses, {
+    cascade: true,
+    onDelete: "RESTRICT",
+    onUpdate: "CASCADE",
+  })
+  expenseType: ExpenseType;
 
   @CreateDateColumn()
   createdAt: Date;

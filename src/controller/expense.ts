@@ -1,5 +1,12 @@
-import { Account, AccountHistory, Expense, TransactionType } from "../entities";
+import {
+  Account,
+  AccountHistory,
+  Expense,
+  ExpenseType,
+  TransactionType,
+} from "../entities";
 import { ErrorHandler, requestHandler } from "../utils";
+import { AccountController } from "./account";
 import { Controller } from "./base";
 
 export class ExpenseController extends Controller<Expense> {
@@ -10,21 +17,23 @@ export class ExpenseController extends Controller<Expense> {
   create = requestHandler(
     async (req, res, next) => {
       try {
-        this.validateErr(
-          req.body,
-          "accountId",
-          "amount",
-          "expenseName",
-          "expenseName"
-        );
+        this.validateErr(req.body, "amount", "expenseTypeId", "expenseName");
+
+        const expenseType = await this.getRepository(ExpenseType).findOne({
+          where: {
+            id: Number(req.body.expenseTypeId),
+          },
+        });
+
+        if (!expenseType) {
+          throw new ErrorHandler("Expense type not found", 404);
+        }
 
         const history = new AccountHistory();
         history.amount = req.body.amount;
         history.transactionType = TransactionType.DEBIT;
 
-        const account = await this.getRepository(Account).findOneBy({
-          id: Number(req.body.accountId),
-        });
+        const account = await AccountController.currentAccount();
         if (!account) {
           throw new ErrorHandler("Account not found", 404);
         }
@@ -40,6 +49,7 @@ export class ExpenseController extends Controller<Expense> {
 
         const expense = new Expense();
         Object.assign(expense, req.body);
+        expense.expenseType = expenseType;
         await this.repository.save(expense);
         return this.success(res, expense, 201);
       } catch (error) {
@@ -48,7 +58,7 @@ export class ExpenseController extends Controller<Expense> {
     },
     {
       body: {} as Expense & {
-        accountId: string;
+        expenseTypeId: string;
       },
     }
   );

@@ -25,6 +25,7 @@ export enum PurchaseStatus {
   RECIVED = "RECIVED",
   CANCELLED = "CANCELLED",
   RETURNED = "RETURNED",
+  PARTIAL_RETURN = "PARTIAL_RETURN",
 }
 
 @Entity()
@@ -100,6 +101,9 @@ export class Purchase {
     onUpdate: "CASCADE",
   })
   supplier: Supplier;
+
+  @Column({ default: 0 })
+  returned_qty: number;
 
   @CreateDateColumn()
   created_at: Date;

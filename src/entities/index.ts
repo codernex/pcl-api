@@ -24,3 +24,4 @@ export * from "./account";
 export * from "./account-history";
 export * from "./expense";
 export * from "./installment";
+export * from "./expense-type";
