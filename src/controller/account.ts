@@ -89,4 +89,18 @@ export class AccountController extends Controller<Account> {
     }
     return account;
   }
+
+  static async updateBalance(amount: number, type: TransactionType) {
+    const account = await AccountController.currentAccount();
+    if (type === "CREDIT") {
+      account.balance += amount;
+    } else {
+      account.balance -= amount;
+    }
+    const history = new AccountHistory();
+    history.account = account;
+    history.amount = amount;
+    history.transactionType = type;
+    await appDataSource.getRepository(AccountHistory).save(history);
+  }
 }

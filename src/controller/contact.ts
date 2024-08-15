@@ -1,11 +1,18 @@
+import { In } from "typeorm";
 import {
+  AccountHistory,
   Customer,
   Granter,
+  Installments,
+  Invoice,
   PaymentDetails,
+  PaymentMethod,
   PaymentOption,
   PaymentStatus,
+  TransactionType,
 } from "../entities";
 import { ApiError, ErrorHandler, requestHandler } from "../utils";
+import { AccountController } from "./account";
 import { Controller } from "./base";
 
 export class ContactController extends Controller<Customer> {
@@ -100,22 +107,20 @@ export class ContactController extends Controller<Customer> {
         });
 
         const amount = Number.parseFloat(req.body.amount);
-
         const changeAmount = amount - contact.due;
-        const paid_amount = contact.due - amount;
-
-        const payment = new PaymentOption();
-        payment.type = "COLLECT_DUE";
-        payment.amount = contact.due;
-        payment.paid_amount = amount;
-        payment.payment_method = req.body.paymentMethod;
-        payment.payment_status = PaymentStatus.COLLECT_DUE;
-        payment.due_amount = contact.due > 0 ? contact.due : 0;
-        payment.change_amount = changeAmount > 0 ? changeAmount : 0;
-        payment.recived_by = "Owner";
-        payment.reciver_id = req.user?.id;
-        payment.contact = contact;
+        const payment = this.createPayment(
+          contact,
+          amount - changeAmount,
+          req,
+          changeAmount,
+          "COLLECT_DUE"
+        );
+        await AccountController.updateBalance(
+          amount - changeAmount,
+          TransactionType.DEBIT
+        );
         await this.getRepository(PaymentOption).save(payment);
+
         this.success(res, contact, 200);
       } catch (err) {
         return ApiError(err, 500, next);
@@ -222,4 +227,116 @@ export class ContactController extends Controller<Customer> {
       params: { id: "" },
     }
   );
+
+  collectInstallment = requestHandler(
+    async (req, res, next) => {
+      try {
+        this.validateErr(req.body, "amount");
+        this.validateErr(req.params, "id");
+
+        const installment = await this.getRepository(Installments).findOne({
+          where: {
+            id: parseInt(req.params.id),
+          },
+          relations: {
+            customer: true,
+            invoice: true,
+          },
+        });
+
+        if (!installment) {
+          throw new ErrorHandler("Installment not found", 404);
+        }
+
+        const paid_amount = Number.parseInt(req.body?.amount);
+
+        // Gettings All Installments that are not paid
+        const invoice = await this.getRepository(Invoice)
+          .createQueryBuilder("iv")
+          .leftJoinAndSelect("iv.installments", "installments")
+          .where("iv.id = :id", { id: installment.invoice.id })
+          .andWhere("installments.paid = :paid", { paid: false })
+          .getOneOrFail();
+
+        if (paid_amount < 1) {
+          throw new ErrorHandler("Amount must be greater than 0", 404);
+        }
+
+        if (paid_amount > installment.amount) {
+          // Update last installment
+          const lastInstallment =
+            invoice.installments[invoice.installments.length - 1];
+
+          if (lastInstallment.amount === paid_amount - installment.amount) {
+            lastInstallment.paid = true;
+            lastInstallment.amount = 0;
+          } else {
+            lastInstallment.amount = paid_amount - installment.amount;
+          }
+          installment.amount = 0;
+          installment.paid = true;
+          await this.getRepository(Installments).save(lastInstallment);
+        } else if (paid_amount < installment.amount) {
+          // Update second installment
+          const secondInstallment = invoice.installments[1];
+          secondInstallment.amount =
+            secondInstallment.amount + (installment.amount - paid_amount);
+          await this.getRepository(Installments).save(secondInstallment);
+
+          installment.amount = 0;
+          installment.paid = true;
+        } else {
+          installment.amount = 0;
+          installment.paid = true;
+        }
+
+        await AccountController.updateBalance(
+          paid_amount,
+          TransactionType.DEBIT
+        );
+
+        const payment = this.createPayment(
+          installment.customer,
+          paid_amount,
+          req,
+          0,
+          "COLLECT_INSTALLMENT"
+        );
+        await this.getRepository(PaymentOption).save(payment);
+        await this.getRepository(Installments).save(installment);
+        this.success(res, installment);
+      } catch (err) {
+        this.failed(err, next);
+      }
+    },
+    {
+      body: {} as any,
+      params: { id: "" },
+    }
+  );
+
+  private createPayment(
+    contact: Customer,
+    amount: number,
+    req: any,
+    changeAmount: number,
+    type: string
+  ) {
+    contact.due -= amount;
+
+    const payment = new PaymentOption();
+    payment.type = type;
+    payment.amount = contact.due;
+    payment.paid_amount = amount;
+    payment.payment_method = PaymentMethod.CASH;
+    payment.payment_status = payment.amount
+      ? PaymentStatus.DUE
+      : PaymentStatus.PAID;
+    payment.due_amount = contact.due > 0 ? contact.due : 0;
+    payment.change_amount = changeAmount > 0 ? changeAmount : 0;
+    payment.recived_by = "Owner";
+    payment.reciver_id = req.user?.id;
+    payment.contact = contact;
+    return payment;
+  }
 }

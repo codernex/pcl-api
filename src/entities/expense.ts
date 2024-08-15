@@ -24,6 +24,7 @@ export class Expense {
     cascade: true,
     onDelete: "RESTRICT",
     onUpdate: "CASCADE",
+    eager: true,
   })
   expenseType: ExpenseType;
 

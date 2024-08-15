@@ -157,6 +157,33 @@ export class PurchaseController extends Controller<Purchase> {
     }
   });
 
+  // Get Purchase By Supplier
+  getPurchaseBySupplier = requestHandler(
+    async (req, res, next) => {
+      try {
+        const data = await this.repository
+          .createQueryBuilder("p")
+          .leftJoinAndSelect("p.business", "b")
+          .leftJoinAndSelect("p.products", "products")
+          .leftJoinAndSelect("p.supplier", "s")
+          .leftJoinAndSelect("p.purchasedCart", "pc")
+          .leftJoinAndSelect("p.memo", "memo")
+          .where("b.id = :id", { id: req.user?.business.id })
+          .andWhere("s.id = :sid", { sid: Number(req.params.id) })
+          .orderBy("p.created_at", "DESC")
+          .getMany();
+        this.success(res, data);
+      } catch (error) {
+        return ApiError(error, 404, next);
+      }
+    },
+    {
+      params: {
+        id: "",
+      },
+    }
+  );
+
   // Creating memo image
 
   private createImage(req: any): Image | null {

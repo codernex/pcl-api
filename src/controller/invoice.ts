@@ -333,7 +333,7 @@ export class InvoiceController extends Controller<Invoice> {
     const history = new AccountHistory();
     history.account = account;
     history.amount = amount;
-    history.transactionType = TransactionType.CREDIT;
+    history.transactionType = TransactionType.DEBIT; // Income
     await this.getRepository(AccountHistory).save(history);
   }
 }

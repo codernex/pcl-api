@@ -31,7 +31,7 @@ export class ExpenseController extends Controller<Expense> {
 
         const history = new AccountHistory();
         history.amount = req.body.amount;
-        history.transactionType = TransactionType.DEBIT;
+        history.transactionType = TransactionType.CREDIT; // Expense;
 
         const account = await AccountController.currentAccount();
         if (!account) {

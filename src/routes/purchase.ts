@@ -3,8 +3,12 @@ import { PurchaseController } from "../controller";
 import { uploadImage } from "../utils";
 
 export const purchaseRoutes = Router();
-const { createPurchaseWithBarcode, getPurchase, returnPurchase } =
-  new PurchaseController();
+const {
+  createPurchaseWithBarcode,
+  getPurchase,
+  returnPurchase,
+  getPurchaseBySupplier,
+} = new PurchaseController();
 purchaseRoutes.route("/").get(getPurchase);
 purchaseRoutes.post(
   "/barcode",
@@ -12,3 +16,4 @@ purchaseRoutes.post(
   createPurchaseWithBarcode
 );
 purchaseRoutes.patch("/return/:id", returnPurchase);
+purchaseRoutes.get("/supplier/:id", getPurchaseBySupplier);

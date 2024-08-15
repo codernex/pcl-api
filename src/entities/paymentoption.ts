@@ -20,7 +20,6 @@ export enum PaymentStatus {
   UNPAID = "UNPAID",
   PAID = "PAID",
   DUE = "DUE",
-  COLLECT_DUE = "COLLECT_DUE",
 }
 
 @Entity()
