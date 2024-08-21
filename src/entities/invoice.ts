@@ -26,6 +26,9 @@ export class Invoice {
   @JoinColumn()
   business: Business;
 
+  @Column({ default: 0 })
+  interest_rate: number;
+
   @Column({ type: "double" })
   total_amount: number;
 
@@ -52,7 +55,7 @@ export class Invoice {
 
   @Column({ nullable: true })
   sales_type: string;
-  
+
   @Column()
   quantity: number;
 

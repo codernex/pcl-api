@@ -10,12 +10,7 @@ import { Customer } from "./customer";
 import { Supplier } from "./supplier";
 export enum PaymentMethod {
   CASH = "CASH",
-  BKASH = "BKASH",
-  BANK = "BANK",
-  NAGAD = "NAGAD",
-  ROCKET = "ROCKET",
 }
-
 export enum PaymentStatus {
   UNPAID = "UNPAID",
   PAID = "PAID",

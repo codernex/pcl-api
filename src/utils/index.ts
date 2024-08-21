@@ -192,3 +192,7 @@ export const generateRandomNumber = (length: number) => {
   }
   return parseInt(result);
 };
+
+export const amountWithInterest = (amount: number, interest: number) => {
+  return amount + (amount / 100) * interest ?? 0;
+};

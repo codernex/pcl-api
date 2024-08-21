@@ -35,7 +35,11 @@ export class SupplierController extends Controller<Supplier> {
 
   getSupplier = requestHandler(async (req, res, next) => {
     try {
-      const suppliers = await this.repository.find();
+      const suppliers = await this.repository.find({
+        relations: {
+          paymentOptions: true,
+        },
+      });
       return this.success(res, suppliers);
     } catch (error) {
       this.failed(error, next);

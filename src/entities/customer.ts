@@ -17,6 +17,9 @@ export class Customer extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ nullable: true })
+  account_number: string;
+
   @Column()
   name: string;
 
@@ -30,7 +33,10 @@ export class Customer extends BaseEntity {
   email: string;
 
   @Column({ nullable: true, default: 0 })
-  due: number;
+  cash_due: number;
+
+  @Column({ nullable: true, default: 0 })
+  hire_due: number;
 
   @Column({ nullable: true })
   present_address: string;

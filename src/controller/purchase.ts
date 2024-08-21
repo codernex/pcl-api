@@ -5,6 +5,7 @@ import {
   ProductType,
   Purchase,
   PurchaseStatus,
+  TransactionType,
 } from "../entities";
 import {
   PaymentMethod,
@@ -13,6 +14,7 @@ import {
 } from "../entities/paymentoption";
 import { PurchasedCart } from "../entities/purchased.cart";
 import { ApiError, generateRandomNumber, requestHandler } from "../utils";
+import { AccountController } from "./account";
 import { Controller } from "./base";
 import { ProductController } from "./product";
 
@@ -128,6 +130,10 @@ export class PurchaseController extends Controller<Purchase> {
             purchase.addCart(cart);
           }
         });
+        await AccountController.updateBalance(
+          paid_amount,
+          TransactionType.CREDIT
+        );
         await this.repository.save(purchase);
         this.success(res, purchase, 201);
       } catch (error) {

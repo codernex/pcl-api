@@ -1,11 +1,9 @@
-import { In } from "typeorm";
+import { format } from "date-fns";
 import {
-  AccountHistory,
   Customer,
   Granter,
   Installments,
   Invoice,
-  PaymentDetails,
   PaymentMethod,
   PaymentOption,
   PaymentStatus,
@@ -14,6 +12,7 @@ import {
 import { ApiError, ErrorHandler, requestHandler } from "../utils";
 import { AccountController } from "./account";
 import { Controller } from "./base";
+import { Between } from "typeorm";
 
 export class ContactController extends Controller<Customer> {
   constructor() {
@@ -24,8 +23,26 @@ export class ContactController extends Controller<Customer> {
     async (req, res, next) => {
       try {
         this.validateErr(req.body, "name", "mobile");
+        const currentDate = new Date();
+
+        // Set the time to the start of the day (midnight)
+        currentDate.setHours(0, 0, 0, 0);
+
+        // Calculate the next day to set the end of the day (just before midnight)
+        const nextDate = new Date(currentDate);
+        nextDate.setDate(currentDate.getDate() + 1);
+
+        const count = await this.repository.count({
+          where: {
+            created_at: Between(currentDate, nextDate),
+          },
+        });
         // Handling Error
         const contact = new Customer();
+
+        contact.account_number =
+          format(currentDate, "yyyyMMdd") +
+          (count + 1).toString().padStart(3, "0");
 
         Object.assign(contact, {
           ...req.body,
@@ -107,8 +124,12 @@ export class ContactController extends Controller<Customer> {
         });
 
         const amount = Number.parseFloat(req.body.amount);
-        const changeAmount = amount - contact.due;
-        const payment = this.createPayment(
+        const changeAmount = amount - contact.cash_due;
+
+        if (contact.cash_due < amount) {
+          throw new ErrorHandler("Can't pay more than due amount", 404);
+        }
+        const payment = this.createCashPayment(
           contact,
           amount - changeAmount,
           req,
@@ -262,32 +283,26 @@ export class ContactController extends Controller<Customer> {
           throw new ErrorHandler("Amount must be greater than 0", 404);
         }
 
-        if (paid_amount > installment.amount) {
-          // Update last installment
-          const lastInstallment =
-            invoice.installments[invoice.installments.length - 1];
+        const totalInstallmentAmount = invoice.installments.reduce(
+          (total, installment) => total + installment.amount,
+          0
+        );
 
-          if (lastInstallment.amount === paid_amount - installment.amount) {
-            lastInstallment.paid = true;
-            lastInstallment.amount = 0;
-          } else {
-            lastInstallment.amount = paid_amount - installment.amount;
-          }
-          installment.amount = 0;
-          installment.paid = true;
-          await this.getRepository(Installments).save(lastInstallment);
-        } else if (paid_amount < installment.amount) {
-          // Update second installment
-          const secondInstallment = invoice.installments[1];
-          secondInstallment.amount =
-            secondInstallment.amount + (installment.amount - paid_amount);
-          await this.getRepository(Installments).save(secondInstallment);
+        if (paid_amount > totalInstallmentAmount) {
+          throw new ErrorHandler(
+            "Amount must be less than or equal to total installment amount",
+            404
+          );
+        }
 
-          installment.amount = 0;
-          installment.paid = true;
+        if (invoice.installments.length === 1) {
+          this.handleSingleInstallment(installment, paid_amount);
         } else {
-          installment.amount = 0;
-          installment.paid = true;
+          await this.handleMultipleInstallments(
+            installment,
+            paid_amount,
+            invoice
+          );
         }
 
         await AccountController.updateBalance(
@@ -295,12 +310,14 @@ export class ContactController extends Controller<Customer> {
           TransactionType.DEBIT
         );
 
-        const payment = this.createPayment(
+        const payment = this.createHirePayment(
           installment.customer,
           paid_amount,
           req,
           0,
-          "COLLECT_INSTALLMENT"
+          invoice.installments.length === 1
+            ? "COLLECT_LPR"
+            : "COLLECT_INSTALLMENT"
         );
         await this.getRepository(PaymentOption).save(payment);
         await this.getRepository(Installments).save(installment);
@@ -315,28 +332,118 @@ export class ContactController extends Controller<Customer> {
     }
   );
 
-  private createPayment(
+  private createCashPayment(
     contact: Customer,
     amount: number,
     req: any,
     changeAmount: number,
     type: string
   ) {
-    contact.due -= amount;
+    contact.cash_due =
+      contact?.cash_due - amount > 0 ? contact.cash_due - amount : 0;
 
     const payment = new PaymentOption();
     payment.type = type;
-    payment.amount = contact.due;
+    payment.amount = contact.cash_due;
     payment.paid_amount = amount;
     payment.payment_method = PaymentMethod.CASH;
     payment.payment_status = payment.amount
       ? PaymentStatus.DUE
       : PaymentStatus.PAID;
-    payment.due_amount = contact.due > 0 ? contact.due : 0;
+    payment.due_amount = contact.cash_due > 0 ? contact.cash_due : 0;
     payment.change_amount = changeAmount > 0 ? changeAmount : 0;
     payment.recived_by = "Owner";
     payment.reciver_id = req.user?.id;
     payment.contact = contact;
     return payment;
   }
+
+  private createHirePayment(
+    contact: Customer,
+    amount: number,
+    req: any,
+    changeAmount: number,
+    type: string
+  ) {
+    contact.hire_due =
+      contact.hire_due - amount > 0 ? contact.hire_due - amount : 0;
+
+    const payment = new PaymentOption();
+    payment.type = type;
+    payment.amount = contact.hire_due;
+    payment.paid_amount = amount;
+    payment.payment_method = PaymentMethod.CASH;
+    payment.payment_status = payment.amount
+      ? PaymentStatus.DUE
+      : PaymentStatus.PAID;
+    payment.due_amount = contact.hire_due > 0 ? contact.hire_due : 0;
+    payment.change_amount = changeAmount > 0 ? changeAmount : 0;
+    payment.recived_by = "Owner";
+    payment.reciver_id = req.user?.id;
+    payment.contact = contact;
+    return payment;
+  }
+
+  private handleSingleInstallment = (
+    installment: Installments,
+    amount: number
+  ) => {
+    if (amount !== installment.amount) {
+      throw new ErrorHandler(
+        `LPR Amount must be exactly equal to the installment amount of ${installment.amount}`,
+        404
+      );
+    }
+    installment.paid = true;
+    installment.amount = 0;
+  };
+
+  private handleMultipleInstallments = async (
+    installment: Installments,
+    amount: number,
+    invoice: Invoice
+  ) => {
+    const lastInstallment =
+      invoice.installments[invoice.installments.length - 1];
+
+    const handleExcess = async (excessAmount: number) => {
+      lastInstallment.amount -= excessAmount;
+
+      if (lastInstallment.amount <= 0) {
+        lastInstallment.paid = true;
+        const extraAmount = Math.abs(lastInstallment.amount);
+        lastInstallment.amount = 0;
+
+        if (extraAmount > 0 && invoice.installments.length > 1) {
+          const secondLastInstallment =
+            invoice.installments[invoice.installments.length - 2];
+          secondLastInstallment.amount -= extraAmount;
+
+          if (secondLastInstallment.amount <= 0) {
+            secondLastInstallment.paid = true;
+            secondLastInstallment.amount = 0;
+          }
+
+          await this.getRepository(Installments).save(secondLastInstallment);
+        }
+      }
+
+      await this.getRepository(Installments).save(lastInstallment);
+    };
+
+    if (amount > installment.amount) {
+      const excessAmount = amount - installment.amount;
+      await handleExcess(excessAmount);
+    } else if (amount < installment.amount) {
+      if (invoice.installments.length > 1) {
+        const secondInstallment = invoice.installments[1];
+        secondInstallment.amount += installment.amount - amount;
+        await this.getRepository(Installments).save(secondInstallment);
+      }
+    }
+
+    installment.amount = 0;
+    installment.paid = true;
+    await this.getRepository(Installments).save(installment);
+  };
 }

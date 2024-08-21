@@ -1,6 +1,5 @@
 import { format } from "date-fns";
 import {
-  Account,
   AccountHistory,
   Cart,
   Customer,
@@ -10,11 +9,11 @@ import {
   PaymentOption,
   PaymentStatus,
   Product,
-  TransactionType,
+  TransactionType
 } from "../entities";
 import { ErrorHandler, requestHandler } from "../utils";
-import { Controller } from "./base";
 import { AccountController } from "./account";
+import { Controller } from "./base";
 
 export class InvoiceController extends Controller<Invoice> {
   constructor() {
@@ -48,7 +47,9 @@ export class InvoiceController extends Controller<Invoice> {
         const paid_amount = req.body.paid_amount
           ? Number.parseFloat(req.body.paid_amount)
           : 0;
+
         const total_amount = Number.parseFloat(req.body.total_amount);
+
         let discountAmount =
           Number.parseFloat(req.body.discount?.toString()) || 0;
         if (req.body.discountType === "PERCENTAGE") {
@@ -94,12 +95,24 @@ export class InvoiceController extends Controller<Invoice> {
           discountAmount
         );
 
-        if (due_amount > 0) {
-          contact.due += due_amount > 0 ? due_amount : 0;
-          await contact.save();
-          payment.payment_status = PaymentStatus.DUE;
+        // Adding Contact Cash or Hire due
+
+        if (req.body.salesType === "RETAIL") {
+          if (due_amount > 0) {
+            contact.cash_due += due_amount > 0 ? due_amount : 0;
+            await contact.save();
+            payment.payment_status = PaymentStatus.DUE;
+          } else {
+            payment.payment_status = PaymentStatus.PAID;
+          }
         } else {
-          payment.payment_status = PaymentStatus.PAID;
+          if (due_amount > 0) {
+            contact.hire_due += due_amount > 0 ? due_amount : 0;
+            await contact.save();
+            payment.payment_status = PaymentStatus.DUE;
+          } else {
+            payment.payment_status = PaymentStatus.PAID;
+          }
         }
 
         // Creating invoice
@@ -118,6 +131,8 @@ export class InvoiceController extends Controller<Invoice> {
         );
 
         let installments: Installments[] = [];
+        console.log(req.body.salesType);
+
         // Creating installment For this Invoice
         if (req.body.salesType === "HIRE" && contact.approved) {
           installments = await this.createInstallment(
@@ -154,6 +169,7 @@ export class InvoiceController extends Controller<Invoice> {
         discountType: "FIXED" | "PERCENTAGE";
         salesType: string;
         installment_period: number;
+        interest_rate: number;
       },
     }
   );
@@ -168,7 +184,6 @@ export class InvoiceController extends Controller<Invoice> {
         .leftJoinAndSelect("iv.installments", "i")
         .where("b.id=:id", { id: req.user?.business.id })
         .orderBy("iv.created_at", "DESC")
-        .orderBy("STR_TO_DATE(i.date, '%d-%m-%Y')", "DESC")
         .getMany();
 
       this.success(res, invoices);
@@ -277,6 +292,7 @@ export class InvoiceController extends Controller<Invoice> {
     invoice.transport_cost = transport_cost;
     invoice.discountType = req.body.discountType;
     invoice.sales_type = req.body.salesType;
+    invoice.interest_rate = req.body.interest_rate;
     invoice.discount =
       req.body.discountType === "PERCENTAGE"
         ? (discountAmount / total_amount) * 100
