@@ -1,5 +1,6 @@
 import {
   BaseEntity,
+  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
@@ -123,7 +124,6 @@ export class Product extends BaseEntity {
 
   @Column({ nullable: true })
   sku_id: string;
-
 
   @Column({ default: false })
   is_returned_supplier: boolean;

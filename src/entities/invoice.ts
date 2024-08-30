@@ -22,6 +22,7 @@ export class Invoice {
 
   @Column({ nullable: true })
   invoice_id: string;
+  
   @ManyToOne(() => Business)
   @JoinColumn()
   business: Business;

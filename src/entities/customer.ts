@@ -23,7 +23,7 @@ export class Customer extends BaseEntity {
   @Column()
   name: string;
 
-  @Column()
+  @Column({ nullable: true })
   husband_or_parent_name: string;
 
   @Column()

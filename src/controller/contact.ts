@@ -252,12 +252,11 @@ export class ContactController extends Controller<Customer> {
   collectInstallment = requestHandler(
     async (req, res, next) => {
       try {
-        this.validateErr(req.body, "amount");
-        this.validateErr(req.params, "id");
+        this.validateErr(req.body, "amount", "installmentId");
 
         const installment = await this.getRepository(Installments).findOne({
           where: {
-            id: parseInt(req.params.id),
+            id: req.body.installmentId,
           },
           relations: {
             customer: true,
@@ -328,7 +327,6 @@ export class ContactController extends Controller<Customer> {
     },
     {
       body: {} as any,
-      params: { id: "" },
     }
   );
 
@@ -339,8 +337,7 @@ export class ContactController extends Controller<Customer> {
     changeAmount: number,
     type: string
   ) {
-    contact.cash_due =
-      contact?.cash_due - amount > 0 ? contact.cash_due - amount : 0;
+    contact.cash_due = contact.cash_due - amount || 0;
 
     const payment = new PaymentOption();
     payment.type = type;
@@ -350,6 +347,7 @@ export class ContactController extends Controller<Customer> {
     payment.payment_status = payment.amount
       ? PaymentStatus.DUE
       : PaymentStatus.PAID;
+    payment.payment_by_id = contact.id;
     payment.due_amount = contact.cash_due > 0 ? contact.cash_due : 0;
     payment.change_amount = changeAmount > 0 ? changeAmount : 0;
     payment.recived_by = "Owner";

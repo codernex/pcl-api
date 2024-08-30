@@ -13,11 +13,11 @@ const {
   collectInstallment,
 } = new ContactController();
 customerRoutes.route("/").post(createContact).get(getContacts);
+customerRoutes.patch("/collect-installment", collectInstallment);
 customerRoutes.route("/:id").patch(updateContact);
 customerRoutes.route("/collect-due/:id").patch(collectDue);
 customerRoutes.post("/:id/granter", addGranter);
 customerRoutes.patch("/:id/approve", approveCustomer);
-customerRoutes.patch("/:id/collect-installment", collectInstallment);
 customerRoutes.post(
   "/:id/document",
   uploadImage.array("documents"),

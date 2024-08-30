@@ -77,6 +77,9 @@ export class PaymentOption {
   })
   supplier: Supplier;
 
+  @Column({ nullable: true })
+  payment_by_id: number;
+
   @CreateDateColumn()
   created_at: Date;
 }
