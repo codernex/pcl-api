@@ -2,6 +2,7 @@ import {
   Column,
   Entity,
   JoinColumn,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   OneToOne,
@@ -29,8 +30,11 @@ export class Category {
   @Column()
   productGroup: string;
 
-  @ManyToOne(() => Brand, (b) => b.categories, {onDelete:"CASCADE"})
-  brand: Brand;
+  @ManyToMany(() => Brand, (b) => b.categories, {
+    onDelete: "RESTRICT",
+    onUpdate: "CASCADE",
+  })
+  brand: Brand[];
 
   @OneToMany(() => Product, (p) => p.category)
   products: Product[];

@@ -26,6 +26,9 @@ export class Customer extends BaseEntity {
   @Column({ nullable: true })
   husband_or_parent_name: string;
 
+  @Column({ default: 0 })
+  savings: number;
+
   @Column()
   mobile: string;
 

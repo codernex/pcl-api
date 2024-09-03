@@ -3,6 +3,8 @@ import {
   Column,
   Entity,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   OneToOne,
@@ -24,16 +26,23 @@ export class Brand extends BaseEntity {
   @Column({ nullable: true })
   description: string;
 
-  @OneToMany(() => Category, (c) => c.brand, {
-    eager: true,
+  @ManyToMany(() => Category, (c) => c.brand, {
+    eager:true,
+    cascade: true,
+    onUpdate: "CASCADE",
+    onDelete: "RESTRICT",
   })
+  @JoinTable()
   categories: Category[];
+
+  @ManyToMany(() => Model, (m) => m.brands, {
+    onUpdate: "CASCADE",
+    onDelete: "RESTRICT",
+  })
+  models: Model[];
 
   @OneToMany(() => Product, (p) => p.brand)
   products: Product[];
-
-  @ManyToOne(() => Model, (m) => m.brands,{onDelete:"RESTRICT"})
-  models: Model;
 
   @OneToOne(() => Image, { eager: true, onDelete: "CASCADE" })
   @JoinColumn()

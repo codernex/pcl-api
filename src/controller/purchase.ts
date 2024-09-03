@@ -69,6 +69,7 @@ export class PurchaseController extends Controller<Purchase> {
           .createQueryBuilder()
           .where("id=:contactId", { contactId: req.body.contact_id })
           .getOneOrFail();
+        contactData.due += due_amount;
         // Creating Payment for purchase
         const payment = this.createPayment(
           contactData,
@@ -116,8 +117,6 @@ export class PurchaseController extends Controller<Purchase> {
             purchase.purchasedCart[cartExist].quantity += purchase_qty;
             purchase.purchasedCart[cartExist].sku_id += `, ${p.sku_id}`;
           } else {
-            console.log("Running THis Portions");
-
             const cart = new PurchasedCart();
             Object.assign<any, Partial<PurchasedCart>>(cart, {
               name: p.name,

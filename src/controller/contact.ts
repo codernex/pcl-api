@@ -12,7 +12,7 @@ import {
 import { ApiError, ErrorHandler, requestHandler } from "../utils";
 import { AccountController } from "./account";
 import { Controller } from "./base";
-import { Between } from "typeorm";
+import { Between, Like } from "typeorm";
 
 export class ContactController extends Controller<Customer> {
   constructor() {
@@ -28,21 +28,21 @@ export class ContactController extends Controller<Customer> {
         // Set the time to the start of the day (midnight)
         currentDate.setHours(0, 0, 0, 0);
 
-        // Calculate the next day to set the end of the day (just before midnight)
-        const nextDate = new Date(currentDate);
-        nextDate.setDate(currentDate.getDate() + 1);
-
-        const count = await this.repository.count({
-          where: {
-            created_at: Between(currentDate, nextDate),
-          },
-        });
         // Handling Error
         const contact = new Customer();
 
-        contact.account_number =
-          format(currentDate, "yyyyMMdd") +
-          (count + 1).toString().padStart(3, "0");
+        if (req.body.account_number) {
+          contact.account_number = req.body.account_number;
+        } else {
+          const count = await this.repository.count({
+            where: {
+              account_number: Like(`${format(currentDate, "yyyyMM")}%`),
+            },
+          });
+          contact.account_number =
+            format(currentDate, "yyyyMM") +
+            (count + 1).toString().padStart(3, "0");
+        }
 
         Object.assign(contact, {
           ...req.body,
@@ -124,8 +124,7 @@ export class ContactController extends Controller<Customer> {
         });
 
         const amount = Number.parseFloat(req.body.amount);
-        const changeAmount = amount - contact.cash_due;
-
+        const changeAmount = Math.max(amount - contact.cash_due, 0);
         if (contact.cash_due < amount) {
           throw new ErrorHandler("Can't pay more than due amount", 404);
         }
@@ -320,9 +319,33 @@ export class ContactController extends Controller<Customer> {
         );
         await this.getRepository(PaymentOption).save(payment);
         await this.getRepository(Installments).save(installment);
-        this.success(res, installment);
+        this.success(res, { payment, installment }, 200);
       } catch (err) {
         this.failed(err, next);
+      }
+    },
+    {
+      body: {} as any,
+    }
+  );
+
+  deposit = requestHandler(
+    async (req, res, next) => {
+      try {
+        this.validateErr(req.body, "amount", "customerId");
+        const contact = await this.repository.findOneOrFail({
+          where: {
+            id: req.body.customerId,
+          },
+        });
+
+        contact.savings += Number.parseInt(req.body?.amount);
+
+        await contact.save();
+
+        this.success(res, contact);
+      } catch (error) {
+        return this.failed(error, next);
       }
     },
     {

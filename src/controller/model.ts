@@ -52,7 +52,12 @@ export class ModelController extends Controller<Model> {
   get = requestHandler(
     async (req, res, next) => {
       try {
-        const model = await this.repository.find();
+        const model = await this.repository.find({
+          relations: {
+            image: true,
+            brands: true,
+          },
+        });
 
         this.success(res, model);
       } catch (err) {

@@ -92,7 +92,7 @@ export class AccountController extends Controller<Account> {
 
   static async updateBalance(amount: number, type: TransactionType) {
     const account = await AccountController.currentAccount();
-    if (type === "CREDIT") {
+    if (type === "DEBIT") {
       account.balance += amount;
     } else {
       account.balance -= amount;

@@ -2,6 +2,8 @@ import {
   Column,
   Entity,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -21,7 +23,12 @@ export class Model {
   @Column({ nullable: true })
   description: string;
 
-  @OneToMany(() => Brand, (b) => b.models, { eager: true })
+  @ManyToMany(() => Brand, (b) => b.models, {
+    cascade: true,
+    onUpdate: "CASCADE",
+    onDelete: "RESTRICT",
+  })
+  @JoinTable()
   brands: Brand[];
 
   @OneToOne(() => Image, { cascade: true, eager: true, onDelete: "CASCADE" })

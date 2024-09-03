@@ -75,6 +75,7 @@ export class CategoryController extends Controller<Category> {
         const category = await this.repository.find({
           relations: {
             image: true,
+            brand: true,
           },
         });
 

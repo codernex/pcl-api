@@ -63,6 +63,7 @@ export class BrandController extends Controller<Brand> {
       const brands = await this.repository.find({
         relations: {
           image: true,
+          categories: true,
         },
       });
       return this.success(res, brands);
