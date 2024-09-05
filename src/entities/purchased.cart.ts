@@ -27,6 +27,15 @@ export class PurchasedCart {
   @Column({ type: "double" })
   purchase_price: number;
 
+  @Column({nullable:true})
+  model:string
+
+  @Column({nullable:true})
+  brand:string
+
+  @Column({nullable:true})
+  category:string
+
   @ManyToOne(() => Purchase, (purchase) => purchase.purchasedCart, {
     onDelete: "CASCADE",
   })

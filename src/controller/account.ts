@@ -91,7 +91,17 @@ export class AccountController extends Controller<Account> {
   }
 
   static async updateBalance(amount: number, type: TransactionType) {
+    if (
+      amount === 0 ||
+      !amount ||
+      amount === undefined ||
+      amount === null ||
+      Number.isNaN(amount)
+    )
+      return;
+
     const account = await AccountController.currentAccount();
+    
     if (type === "DEBIT") {
       account.balance += amount;
     } else {

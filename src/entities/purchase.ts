@@ -72,6 +72,8 @@ export class Purchase {
   @JoinTable()
   products: Product[];
 
+  
+
   @OneToMany(() => PurchasedCart, (p) => p.purchases, {
     onUpdate: "CASCADE",
     cascade: true,

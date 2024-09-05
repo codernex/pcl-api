@@ -18,6 +18,18 @@ export class Cart {
   @Column({ type: "double" })
   selling_price: number;
 
+  @Column({ nullable: true })
+  category: string;
+
+  @Column({ nullable: true })
+  brand: string;
+
+  @Column({ nullable: true })
+  model: string;
+
+  @Column({ nullable: true })
+  product_type: string;
+
   @Column()
   sku_id: string;
 

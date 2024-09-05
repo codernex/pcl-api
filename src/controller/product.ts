@@ -308,6 +308,7 @@ export class ProductController extends Controller<Product> {
       .leftJoinAndSelect("p.category", "cat")
       .leftJoinAndSelect("p.unit", "u")
       .leftJoinAndSelect("p.model", "m")
+      .leftJoinAndSelect("p.purchase", "purchase")
       .where("p.id = :id", { id })
       .getOneOrFail();
   }

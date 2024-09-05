@@ -13,7 +13,5 @@ export class PurchaseSubscriber implements EntitySubscriberInterface<Purchase> {
 
   async beforeInsert(event: InsertEvent<Purchase>) {
     const entity = event.entity;
-
-    console.log("Before Save", entity);
   }
 }

@@ -122,7 +122,7 @@ export class Product extends BaseEntity {
   })
   stock_transfer: StockTransfer[];
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, unique: true })
   sku_id: string;
 
   @Column({ default: false })
