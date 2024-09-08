@@ -6,24 +6,26 @@ import errorMiddleware from "./middleware/err";
 import { isAuthenticated } from "./middleware/isAuth";
 import { appDataSource } from "./orm.config";
 import {
+  accountRoutes,
   brandRoutes,
   businessRoutes,
   categoryRoutes,
   customerRoutes,
+  expenseRoutes,
+  expenseTypeRoutes,
   invoiceRoutes,
   modelRoutes,
   paperRoutes,
+  paymentRoutes,
   productGroupRoutes,
   productRoutes,
   purchaseRoutes,
+  salesReturnRoutes,
   stockTransferRoutes,
+  supplierRoutes,
   unitRoutes,
   userRoutes,
   warehouseRoutes,
-  supplierRoutes,
-  accountRoutes,
-  expenseRoutes,
-  expenseTypeRoutes,
 } from "./routes";
 import { roleRoutes } from "./routes/role";
 
@@ -58,9 +60,13 @@ const mount = async (app: Application) => {
   app.use("/api/v1/accounts", isAuthenticated, accountRoutes);
   app.use("/api/v1/expense", isAuthenticated, expenseRoutes);
   app.use("/api/v1/expense-types", isAuthenticated, expenseTypeRoutes);
+  app.use("/api/v1/sales-return", isAuthenticated, salesReturnRoutes);
+  app.use("/api/v1/payments", isAuthenticated, paymentRoutes);
   app.get("/api/v1/healthz", (_req, res) => {
     res.status(200).json({ status: "ok" });
   });
+
+  // Error middleware
   app.use(errorMiddleware);
 
   const server = app.listen(sanitizedConfig.PORT, "0.0.0.0", () => {

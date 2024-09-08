@@ -25,3 +25,4 @@ export * from "./account-history";
 export * from "./expense";
 export * from "./installment";
 export * from "./expense-type";
+export * from './sales-return';

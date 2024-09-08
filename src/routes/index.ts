@@ -16,3 +16,5 @@ export * from "./supplier";
 export * from "./account";
 export * from "./expense";
 export * from "./expense-type";
+export * from "./sales-return";
+export * from "./payments";

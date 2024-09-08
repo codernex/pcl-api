@@ -26,6 +26,7 @@ import {
   Expense,
   Installments,
   ExpenseType,
+  SalesReturn,
 } from "./entities";
 import { PurchasedCart } from "./entities/purchased.cart";
 import { Warehouse } from "./entities/warehouse";
@@ -72,6 +73,7 @@ export const appDataSource = new DataSource({
     Expense,
     Installments,
     ExpenseType,
+    SalesReturn,
   ],
   synchronize: true,
   subscribers: [
