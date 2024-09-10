@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { Like } from "typeorm";
 import {
   Customer,
   Granter,
@@ -12,7 +13,6 @@ import {
 import { ApiError, ErrorHandler, requestHandler } from "../utils";
 import { AccountController } from "./account";
 import { Controller } from "./base";
-import { Between, Like } from "typeorm";
 
 export class ContactController extends Controller<Customer> {
   constructor() {
@@ -23,6 +23,20 @@ export class ContactController extends Controller<Customer> {
     async (req, res, next) => {
       try {
         this.validateErr(req.body, "name", "mobile");
+
+        const isExist = await this.repository.count({
+          where: {
+            account_number: req.body.account_number,
+          },
+        });
+
+        if (isExist) {
+          return this.failed(
+            "Customer Already Exist with this Account Number",
+            next
+          );
+        }
+
         const currentDate = new Date();
 
         // Set the time to the start of the day (midnight)
@@ -251,7 +265,21 @@ export class ContactController extends Controller<Customer> {
   collectInstallment = requestHandler(
     async (req, res, next) => {
       try {
-        this.validateErr(req.body, "amount", "installmentId");
+        this.validateErr(req.body, "amount", "installmentId", "customerId");
+
+        const customer = await this.getRepository(Customer).findOne({
+          where: {
+            id: req.body.customerId,
+          },
+        });
+
+        if (!customer) {
+          throw new ErrorHandler("Customer not found", 404);
+        }
+
+        if (customer.is_hire_account_closed) {
+          throw new ErrorHandler("Customer's hire account is closed", 404);
+        }
 
         const installment = await this.getRepository(Installments).findOne({
           where: {
@@ -353,6 +381,49 @@ export class ContactController extends Controller<Customer> {
     }
   );
 
+  collectLPR = requestHandler(
+    async (req, res, next) => {
+      try {
+        this.validateErr(req.body, "amount", "customerId");
+
+        const customer = await this.repository.findOne({
+          where: {
+            id: req.body.customerId,
+          },
+        });
+
+        if (!customer) {
+          return this.failed("Customer not found", next);
+        }
+
+        if(customer.is_hire_account_closed) {
+          throw new ErrorHandler("Customer's hire account is closed", 404);
+        }
+        customer.is_hire_account_closed = true;
+
+        const payment = this.createHirePayment(
+          customer,
+          req.body.amount,
+          req,
+          0,
+          "COLLECT_LPR"
+        );
+        await AccountController.updateBalance(
+          Number.parseInt(req.body.amount),
+          TransactionType.DEBIT
+        );
+        await this.getRepository(PaymentOption).save(payment);
+
+        this.success(res, payment);
+      } catch (err) {
+        return this.failed(err, next);
+      }
+    },
+    {
+      body: {} as any,
+    }
+  );
+
   private createCashPayment(
     contact: Customer,
     amount: number,
@@ -386,8 +457,10 @@ export class ContactController extends Controller<Customer> {
     changeAmount: number,
     type: string
   ) {
-    contact.hire_due =
-      contact.hire_due - amount > 0 ? contact.hire_due - amount : 0;
+    contact.hire_due = Math.max(
+      contact.hire_due - Number.parseInt(req.body?.amount),
+      0
+    );
 
     const payment = new PaymentOption();
     payment.type = type;

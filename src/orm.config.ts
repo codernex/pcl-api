@@ -38,6 +38,7 @@ import {
 import { BrandSubscriber } from "./subscriber/brand";
 import { CategorySubscriber } from "./subscriber/category";
 import { ProductGroupSubscriber } from "./subscriber/product-group";
+import { Seasonal } from "./entities/seasonal";
 
 export const appDataSource = new DataSource({
   type: "mysql",
@@ -74,6 +75,7 @@ export const appDataSource = new DataSource({
     Installments,
     ExpenseType,
     SalesReturn,
+    Seasonal
   ],
   synchronize: true,
   subscribers: [

@@ -11,6 +11,7 @@ import { Invoice } from "./invoice";
 import { PaymentOption } from "./paymentoption";
 import { Granter } from "./granter";
 import { Installments } from "./installment";
+import { Seasonal } from "./seasonal";
 
 @Entity()
 export class Customer extends BaseEntity {
@@ -28,6 +29,9 @@ export class Customer extends BaseEntity {
 
   @Column({ default: 0 })
   savings: number;
+
+  @Column({ default: false })
+  is_hire_account_closed: boolean;
 
   @Column()
   mobile: string;
@@ -83,6 +87,12 @@ export class Customer extends BaseEntity {
     onDelete: "RESTRICT",
   })
   installments: Installments[];
+
+  @OneToMany(() => Seasonal, (s) => s.customer, {
+    onUpdate: "CASCADE",
+    onDelete: "RESTRICT",
+  })
+  seasonal: Seasonal[];
 
   @CreateDateColumn()
   created_at: Date;

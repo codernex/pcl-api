@@ -31,6 +31,7 @@ export class SalesReturnController extends Controller<SalesReturn> {
             return this.failed("Product not found", next);
           }
           product.is_returned = true;
+          product.quantity += bodyProduct?.quantity;
           salesReturn.addProduct(product);
           salesReturn.amount += parseInt(bodyProduct?.return_amount);
         }

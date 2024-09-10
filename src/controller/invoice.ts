@@ -9,11 +9,12 @@ import {
   PaymentOption,
   PaymentStatus,
   Product,
-  TransactionType
+  TransactionType,
 } from "../entities";
 import { ErrorHandler, requestHandler } from "../utils";
 import { AccountController } from "./account";
 import { Controller } from "./base";
+import { Seasonal } from "../entities/seasonal";
 
 export class InvoiceController extends Controller<Invoice> {
   constructor() {
@@ -86,6 +87,21 @@ export class InvoiceController extends Controller<Invoice> {
           .where("id = :id", { id: req.body.customer_id })
           .getOneOrFail();
 
+        if (req.body.salesType === "HIRE" && contact.hire_due) {
+          return this.failed("This customer has a hire due", next);
+        }
+
+        if (
+          req.body.salesType === "HIRE" &&
+          contact.hire_due &&
+          contact.is_hire_account_closed
+        ) {
+          return this.failed(
+            "This customer has a closed hire account, with faults",
+            next
+          );
+        }
+
         // Creating payment
         const payment = this.createPayment(
           amount_after_discount,
@@ -131,7 +147,7 @@ export class InvoiceController extends Controller<Invoice> {
         );
 
         let installments: Installments[] = [];
-        console.log(req.body.salesType);
+        let seasonals: Seasonal[] = [];
 
         // Creating installment For this Invoice
         if (req.body.salesType === "HIRE" && contact.approved) {
@@ -143,6 +159,13 @@ export class InvoiceController extends Controller<Invoice> {
           );
         } else if (req.body.salesType === "HIRE" && !contact.approved) {
           throw new ErrorHandler("Customer is not approved", 400);
+        } else if (req.body.salesType === "SEASONAL") {
+          seasonals = await this.createSeasonalSales(
+            invoice,
+            contact,
+            due_amount,
+            req.body.installment_period
+          );
         }
 
         const cartsData: Cart[] = [];
@@ -152,7 +175,11 @@ export class InvoiceController extends Controller<Invoice> {
         await this.updateAccount(paid_amount - change_amount || 0);
         await this.repository.save(invoice);
 
-        this.success(res, { ...invoice, carts: cartsData, installments }, 201);
+        this.success(
+          res,
+          { ...invoice, carts: cartsData, installments, seasonals },
+          201
+        );
       } catch (error) {
         this.failed(error, next);
       }
@@ -338,6 +365,35 @@ export class InvoiceController extends Controller<Invoice> {
       installments.push(installment);
     }
     return installments;
+  }
+
+  private async createSeasonalSales(
+    invoice: Invoice,
+    contact: Customer,
+    due_amount: number,
+    installment_period: number
+  ): Promise<Seasonal[]> {
+    const installment_amount = Math.round(due_amount / installment_period);
+    const seasonals: Seasonal[] = [];
+    for (let i = 1; i <= installment_period; i++) {
+      const seasonal = new Seasonal();
+      seasonal.amount = installment_amount;
+      seasonal.invoice = invoice;
+      seasonal.customer = contact;
+
+      // Calculate the due date for each installment
+      const dueDate = new Date();
+      dueDate.setMonth(dueDate.getMonth() + i); // Assuming monthly installments
+
+      // Set the due date in the installment
+      seasonal.date = format(dueDate, "dd-MM-yyyy");
+
+      // Save the installment to the database (assuming you have a repository for Installments)
+      await this.getRepository(Seasonal).save(seasonal);
+
+      seasonals.push(seasonal);
+    }
+    return seasonals;
   }
 
   private async updateAccount(amount: number) {

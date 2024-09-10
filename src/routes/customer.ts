@@ -12,10 +12,12 @@ const {
   approveCustomer,
   collectInstallment,
   deposit,
+  collectLPR
 } = new ContactController();
 customerRoutes.route("/").post(createContact).get(getContacts);
 customerRoutes.patch("/deposit", deposit);
 customerRoutes.patch("/collect-installment", collectInstallment);
+customerRoutes.patch('/collect-lpr',collectLPR)
 customerRoutes.route("/:id").patch(updateContact);
 customerRoutes.route("/collect-due/:id").patch(collectDue);
 customerRoutes.post("/:id/granter", addGranter);

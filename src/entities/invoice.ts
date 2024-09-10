@@ -14,6 +14,7 @@ import { Customer } from "./customer";
 import { PaymentOption } from "./paymentoption";
 import { Cart } from "./cart";
 import { Installments } from "./installment";
+import { Seasonal } from "./seasonal";
 
 @Entity()
 export class Invoice {
@@ -84,6 +85,9 @@ export class Invoice {
 
   @OneToMany(() => Installments, (iv) => iv.invoice)
   installments: Installments[];
+
+  @OneToMany(() => Seasonal, (s) => s.invoice)
+  seasonals: Seasonal[];
 
   @CreateDateColumn()
   created_at: Date;
