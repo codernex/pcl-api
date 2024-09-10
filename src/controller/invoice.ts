@@ -11,7 +11,7 @@ import {
   Product,
   TransactionType,
 } from "../entities";
-import { ErrorHandler, requestHandler } from "../utils";
+import { ErrorHandler, monthDifference, requestHandler } from "../utils";
 import { AccountController } from "./account";
 import { Controller } from "./base";
 import { Seasonal } from "../entities/seasonal";
@@ -164,7 +164,8 @@ export class InvoiceController extends Controller<Invoice> {
             invoice,
             contact,
             due_amount,
-            req.body.installment_period
+            req.body.seasonal_payment_period,
+            req.body.seasonal_due_date
           );
         }
 
@@ -197,6 +198,8 @@ export class InvoiceController extends Controller<Invoice> {
         salesType: string;
         installment_period: number;
         interest_rate: number;
+        seasonal_due_date: string;
+        seasonal_payment_period: number;
       },
     }
   );
@@ -371,26 +374,26 @@ export class InvoiceController extends Controller<Invoice> {
     invoice: Invoice,
     contact: Customer,
     due_amount: number,
-    installment_period: number
+    payment_seasonal: number,
+    payment_till_date: string
   ): Promise<Seasonal[]> {
-    const installment_amount = Math.round(due_amount / installment_period);
+    const installment_amount = Math.round(due_amount / payment_seasonal);
     const seasonals: Seasonal[] = [];
-    for (let i = 1; i <= installment_period; i++) {
+    for (let i = payment_seasonal; i >= 1; i--) {
       const seasonal = new Seasonal();
       seasonal.amount = installment_amount;
       seasonal.invoice = invoice;
       seasonal.customer = contact;
-
       // Calculate the due date for each installment
-      const dueDate = new Date();
-      dueDate.setMonth(dueDate.getMonth() + i); // Assuming monthly installments
+      const currentDate = new Date();
+      const dueDate = new Date(payment_till_date);
 
+      const monthDiff = monthDifference(currentDate, dueDate);
+      currentDate.setMonth(currentDate.getMonth() + monthDiff / i); // Assuming monthly instal
       // Set the due date in the installment
-      seasonal.date = format(dueDate, "dd-MM-yyyy");
-
+      seasonal.date = format(currentDate, "dd-MM-yyyy");
       // Save the installment to the database (assuming you have a repository for Installments)
       await this.getRepository(Seasonal).save(seasonal);
-
       seasonals.push(seasonal);
     }
     return seasonals;

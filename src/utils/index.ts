@@ -196,3 +196,18 @@ export const generateRandomNumber = (length: number) => {
 export const amountWithInterest = (amount: number, interest: number) => {
   return amount + (amount / 100) * interest ?? 0;
 };
+
+
+export function monthDifference(date1: Date, date2: Date): number {
+  const year1 = date1.getFullYear();
+  const month1 = date1.getMonth(); // getMonth() is zero-based (0 for January, 11 for December)
+
+  const year2 = date2.getFullYear();
+  const month2 = date2.getMonth();
+
+  // Calculate the difference in months
+  const yearDiff = year2 - year1;
+  const monthDiff = month2 - month1;
+
+  return yearDiff * 12 + monthDiff;
+}

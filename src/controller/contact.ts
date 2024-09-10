@@ -80,6 +80,7 @@ export class ContactController extends Controller<Customer> {
         relations: {
           payment_option: true,
           installments: true,
+          seasonal: true,
         },
         order: {
           payment_option: {
@@ -396,7 +397,7 @@ export class ContactController extends Controller<Customer> {
           return this.failed("Customer not found", next);
         }
 
-        if(customer.is_hire_account_closed) {
+        if (customer.is_hire_account_closed) {
           throw new ErrorHandler("Customer's hire account is closed", 404);
         }
         customer.is_hire_account_closed = true;
