@@ -28,7 +28,7 @@ export class Invoice {
   @JoinColumn()
   business: Business;
 
-  @Column({ default: 0 })
+  @Column({ default: 0,type:'double' })
   interest_rate: number;
 
   @Column({ type: "double" })

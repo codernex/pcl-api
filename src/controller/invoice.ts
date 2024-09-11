@@ -43,29 +43,31 @@ export class InvoiceController extends Controller<Invoice> {
          */
 
         const transport_cost = req.body.transport_cost
-          ? Number.parseFloat(req.body.transport_cost)
+          ? Math.round(Number.parseFloat(req.body.transport_cost))
           : 0;
         const paid_amount = req.body.paid_amount
-          ? Number.parseFloat(req.body.paid_amount)
+          ? Math.round(Number.parseFloat(req.body.paid_amount))
           : 0;
 
-        const total_amount = Number.parseFloat(req.body.total_amount);
+        const total_amount = Math.round(
+          Number.parseFloat(req.body.total_amount)
+        );
 
         let discountAmount =
           Number.parseFloat(req.body.discount?.toString()) || 0;
         if (req.body.discountType === "PERCENTAGE") {
-          discountAmount = Math.fround((total_amount * discountAmount) / 100);
+          discountAmount = Math.round((total_amount * discountAmount) / 100);
         } else {
-          discountAmount = discountAmount;
+          discountAmount = Math.round(discountAmount);
         }
-        const amount_after_discount = parseFloat(
-          (total_amount - discountAmount).toFixed(2)
+        const amount_after_discount = Math.round(
+          parseFloat((total_amount - discountAmount).toFixed(2))
         );
-        const change_amount = parseFloat(
-          (paid_amount - amount_after_discount).toFixed(2)
+        const change_amount = Math.round(
+          parseFloat((paid_amount - amount_after_discount).toFixed(2))
         );
-        const due_amount = parseFloat(
-          (amount_after_discount - paid_amount).toFixed(2)
+        const due_amount = Math.round(
+          parseFloat((amount_after_discount - paid_amount).toFixed(2))
         );
         const carts = req.body.carts;
 
