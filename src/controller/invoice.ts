@@ -11,10 +11,15 @@ import {
   Product,
   TransactionType,
 } from "../entities";
-import { ErrorHandler, monthDifference, requestHandler } from "../utils";
+import { Seasonal } from "../entities/seasonal";
+import {
+  ErrorHandler,
+  isDateValid,
+  monthDifference,
+  requestHandler,
+} from "../utils";
 import { AccountController } from "./account";
 import { Controller } from "./base";
-import { Seasonal } from "../entities/seasonal";
 
 export class InvoiceController extends Controller<Invoice> {
   constructor() {
@@ -93,6 +98,17 @@ export class InvoiceController extends Controller<Invoice> {
           return this.failed("This customer has a hire due", next);
         }
 
+        if (req.body.salesType === "HIRE" && !contact.approved) {
+          throw new ErrorHandler(
+            "Customer is not approved For Hire Sales",
+            400
+          );
+        }
+
+        if (req.body.salesType === "SAVINGS_HIRE" && !contact.savingsCustomer) {
+          return this.failed("This customer is not a savings customer", next);
+        }
+
         if (
           req.body.salesType === "HIRE" &&
           contact.hire_due &&
@@ -152,15 +168,16 @@ export class InvoiceController extends Controller<Invoice> {
         let seasonals: Seasonal[] = [];
 
         // Creating installment For this Invoice
-        if (req.body.salesType === "HIRE" && contact.approved) {
+        if (
+          req.body.salesType === "HIRE" ||
+          req.body.salesType === "SAVINGS_HIRE"
+        ) {
           installments = await this.createInstallment(
             invoice,
             contact,
             due_amount,
             req.body.installment_period
           );
-        } else if (req.body.salesType === "HIRE" && !contact.approved) {
-          throw new ErrorHandler("Customer is not approved", 400);
         } else if (req.body.salesType === "SEASONAL") {
           seasonals = await this.createSeasonalSales(
             invoice,
@@ -205,24 +222,38 @@ export class InvoiceController extends Controller<Invoice> {
       },
     }
   );
-  getInvoice = requestHandler(async (req, res, next) => {
-    try {
-      const invoices = await this.repository
-        .createQueryBuilder("iv")
-        .leftJoinAndSelect("iv.business", "b")
-        .leftJoinAndSelect("iv.contact", "co")
-        .leftJoinAndSelect("iv.payment", "p")
-        .leftJoinAndSelect("iv.carts", "cart")
-        .leftJoinAndSelect("iv.installments", "i")
-        .where("b.id=:id", { id: req.user?.business.id })
-        .orderBy("iv.created_at", "DESC")
-        .getMany();
+  getInvoice = requestHandler(
+    async (req, res, next) => {
+      try {
+        const qb = this.repository
+          .createQueryBuilder("iv")
+          .leftJoinAndSelect("iv.business", "b")
+          .leftJoinAndSelect("iv.contact", "co")
+          .leftJoinAndSelect("iv.payment", "p")
+          .leftJoinAndSelect("iv.carts", "cart")
+          .leftJoinAndSelect("iv.installments", "i")
+          .andWhere("b.id=:id", { id: req.user?.business.id });
 
-      this.success(res, invoices);
-    } catch (error) {
-      this.failed(error, next);
-    }
-  });
+        if (req.query.startDate && req.query.endDate) {
+          const isDate = isDateValid(req.query.startDate, req.query.endDate);
+
+          if (!isDate) {
+            return this.failed("Start date should be less than end date", next);
+          }
+          qb.andWhere("DATE(iv.created_at) BETWEEN :startDate AND :endDate", {
+            startDate: req.query.startDate,
+            endDate: req.query.endDate,
+          });
+        }
+        const invoices = await qb.orderBy("iv.created_at", "DESC").getMany();
+
+        this.success(res, invoices);
+      } catch (error) {
+        this.failed(error, next);
+      }
+    },
+    { query: {} as any }
+  );
 
   async updateProduct(id: string, quantity: number) {
     await this.getRepository(Product)

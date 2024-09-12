@@ -90,7 +90,12 @@ export class AccountController extends Controller<Account> {
     return account;
   }
 
-  static async updateBalance(amount: number, type: TransactionType) {
+  static async updateBalance(
+    amount: number,
+    type: TransactionType,
+    remarkType?: string,
+    remark?: string
+  ) {
     if (
       amount === 0 ||
       !amount ||
@@ -101,7 +106,7 @@ export class AccountController extends Controller<Account> {
       return;
 
     const account = await AccountController.currentAccount();
-    
+
     if (type === "DEBIT") {
       account.balance += amount;
     } else {
@@ -111,6 +116,8 @@ export class AccountController extends Controller<Account> {
     history.account = account;
     history.amount = amount;
     history.transactionType = type;
+    history.type = remarkType ?? "";
+    history.remark = remark ?? "";
     await appDataSource.getRepository(AccountHistory).save(history);
   }
 }

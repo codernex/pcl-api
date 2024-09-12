@@ -1,9 +1,7 @@
 import {
-  Account,
-  AccountHistory,
   Expense,
   ExpenseType,
-  TransactionType,
+  TransactionType
 } from "../entities";
 import { ErrorHandler, requestHandler } from "../utils";
 import { AccountController } from "./account";
@@ -29,27 +27,16 @@ export class ExpenseController extends Controller<Expense> {
           throw new ErrorHandler("Expense type not found", 404);
         }
 
-        const history = new AccountHistory();
-        history.amount = req.body.amount;
-        history.transactionType = TransactionType.CREDIT; // Expense;
-
-        const account = await AccountController.currentAccount();
-        if (!account) {
-          throw new ErrorHandler("Account not found", 404);
-        }
-
-        if (history.amount > account.balance) {
-          throw new ErrorHandler("Insufficient balance", 400);
-        }
-
-        // Deduction from account
-        account.balance = account.balance - history.amount;
-        history.account = account;
-        await this.getRepository(AccountHistory).save(history);
-
         const expense = new Expense();
         Object.assign(expense, req.body);
         expense.expenseType = expenseType;
+
+        await AccountController.updateBalance(
+          expense.amount,
+          TransactionType.DEBIT,
+          expense.expenseType.type,
+          expense.expenseName
+        );
         await this.repository.save(expense);
         return this.success(res, expense, 201);
       } catch (error) {

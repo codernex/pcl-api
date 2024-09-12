@@ -31,6 +31,12 @@ export class AccountHistory {
   @Column({ type: "double" })
   amount: number;
 
+  @Column({ nullable: true })
+  remark: string;
+
+  @Column({ nullable: true })
+  type: string;
+
   @CreateDateColumn()
   createdAt: Date;
 }

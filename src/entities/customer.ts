@@ -7,10 +7,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
-import { Invoice } from "./invoice";
-import { PaymentOption } from "./paymentoption";
 import { Granter } from "./granter";
 import { Installments } from "./installment";
+import { Invoice } from "./invoice";
+import { PaymentOption } from "./paymentoption";
+import { SavingDeposit } from "./saving-deposit";
 import { Seasonal } from "./seasonal";
 
 @Entity()
@@ -94,6 +95,17 @@ export class Customer extends BaseEntity {
   })
   seasonal: Seasonal[];
 
+  @OneToMany(() => SavingDeposit, (savingDeposit) => savingDeposit.customer, {
+    onUpdate: "CASCADE",
+    onDelete: "RESTRICT",
+  })
+  savingDeposit: SavingDeposit[];
+
+  @Column({
+    default: false,
+  })
+  savingsCustomer: false;
+  
   @CreateDateColumn()
   created_at: Date;
 

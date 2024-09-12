@@ -29,6 +29,7 @@ import {
 } from "./routes";
 import { roleRoutes } from "./routes/role";
 import { installmentRoutes } from "./routes/installment";
+import { depositRoutes } from "./routes/deposit";
 
 const mount = async (app: Application) => {
   await appDataSource.initialize();
@@ -64,6 +65,7 @@ const mount = async (app: Application) => {
   app.use("/api/v1/sales-return", isAuthenticated, salesReturnRoutes);
   app.use("/api/v1/payments", isAuthenticated, paymentRoutes);
   app.use("/api/v1/installments", isAuthenticated, installmentRoutes);
+  app.use("/api/v1/saving-deposits", isAuthenticated, depositRoutes);
   app.get("/api/v1/healthz", (_req, res) => {
     res.status(200).json({ status: "ok" });
   });

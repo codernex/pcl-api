@@ -3,7 +3,7 @@ import {
   PaymentOption,
   PaymentStatus,
   Supplier,
-  TransactionType
+  TransactionType,
 } from "../entities";
 import { requestHandler } from "../utils";
 import { AccountController } from "./account";
@@ -80,7 +80,12 @@ export class SupplierController extends Controller<Supplier> {
         payment.supplier = supplier;
         payment.type = "Supplier Due Payment";
 
-        await AccountController.updateBalance(amount, TransactionType.CREDIT);
+        await AccountController.updateBalance(
+          amount,
+          TransactionType.CREDIT,
+          "PURCHASE_DUE",
+          "Supplier Due Payment"
+        );
 
         await this.getRepository(PaymentOption).save(payment);
         return this.success(res, supplier);

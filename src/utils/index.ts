@@ -1,3 +1,4 @@
+import { isBefore, isEqual, parseISO } from "date-fns";
 import { NextFunction, Response } from "express";
 import * as fs from "fs/promises";
 import jwt from "jsonwebtoken";
@@ -197,7 +198,6 @@ export const amountWithInterest = (amount: number, interest: number) => {
   return amount + (amount / 100) * interest ?? 0;
 };
 
-
 export function monthDifference(date1: Date, date2: Date): number {
   const year1 = date1.getFullYear();
   const month1 = date1.getMonth(); // getMonth() is zero-based (0 for January, 11 for December)
@@ -211,3 +211,15 @@ export function monthDifference(date1: Date, date2: Date): number {
 
   return yearDiff * 12 + monthDiff;
 }
+
+
+export const isDateValid = (
+  startDate: string,
+  endDate: string,
+): boolean => {
+  const start = parseISO(startDate);
+  const end = parseISO(endDate);
+
+  // Check if start date is before or equal to the end date
+  return isBefore(start, end) || isEqual(start, end);
+};

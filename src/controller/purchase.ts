@@ -137,7 +137,9 @@ export class PurchaseController extends Controller<Purchase> {
         // Handling Account Update
         await AccountController.updateBalance(
           paid_amount,
-          TransactionType.CREDIT
+          TransactionType.CREDIT,
+          "PURCHASE",
+          "Purchase From Supplier"
         );
 
         // Saving Purchase

@@ -8,6 +8,7 @@ import {
   PaymentMethod,
   PaymentOption,
   PaymentStatus,
+  SavingDeposit,
   TransactionType,
 } from "../entities";
 import { ApiError, ErrorHandler, requestHandler } from "../utils";
@@ -152,7 +153,9 @@ export class ContactController extends Controller<Customer> {
         );
         await AccountController.updateBalance(
           amount - changeAmount,
-          TransactionType.DEBIT
+          TransactionType.DEBIT,
+          "COLLECT_DUE",
+          "Collect Retail Due From Customer"
         );
         await this.getRepository(PaymentOption).save(payment);
 
@@ -334,7 +337,9 @@ export class ContactController extends Controller<Customer> {
 
         await AccountController.updateBalance(
           paid_amount,
-          TransactionType.DEBIT
+          TransactionType.DEBIT,
+          "COLLECT_INSTALLMENT",
+          "Collect Installment from customer"
         );
 
         const payment = this.createHirePayment(
@@ -370,7 +375,11 @@ export class ContactController extends Controller<Customer> {
 
         contact.savings += Number.parseInt(req.body?.amount);
 
-        await contact.save();
+        const deposit = new SavingDeposit();
+        deposit.amount = Number.parseInt(req.body?.amount);
+        deposit.customer = contact;
+
+        await this.getRepository(SavingDeposit).save(deposit);
 
         this.success(res, contact);
       } catch (error) {
@@ -411,7 +420,9 @@ export class ContactController extends Controller<Customer> {
         );
         await AccountController.updateBalance(
           Number.parseInt(req.body.amount),
-          TransactionType.DEBIT
+          TransactionType.DEBIT,
+          "COLLECT_LPR",
+          "Collect LPR from customer"
         );
         await this.getRepository(PaymentOption).save(payment);
 

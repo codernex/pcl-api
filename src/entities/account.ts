@@ -37,6 +37,7 @@ export class Account {
   @Column({ default: false })
   default: boolean;
 
+
   @Column({ enum: AccountState, type: "enum", nullable: true })
   accountState: AccountState;
 

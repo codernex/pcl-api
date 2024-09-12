@@ -1,7 +1,8 @@
 import { In } from "typeorm";
-import { Product, SalesReturn } from "../entities";
+import { Product, SalesReturn, TransactionType } from "../entities";
 import { requestHandler } from "../utils";
 import { Controller } from "./base";
+import { AccountController } from "./account";
 
 export class SalesReturnController extends Controller<SalesReturn> {
   constructor() {
@@ -35,6 +36,13 @@ export class SalesReturnController extends Controller<SalesReturn> {
           salesReturn.addProduct(product);
           salesReturn.amount += parseInt(bodyProduct?.return_amount);
         }
+
+        await AccountController.updateBalance(
+          salesReturn.amount,
+          TransactionType.CREDIT,
+          "SALES_RETURN",
+          "Sales Return amount to customer"
+        );
 
         await this.repository.save(salesReturn);
 
