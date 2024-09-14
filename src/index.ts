@@ -13,6 +13,7 @@ import {
   customerRoutes,
   expenseRoutes,
   expenseTypeRoutes,
+  incomeRoutes,
   invoiceRoutes,
   modelRoutes,
   paperRoutes,
@@ -21,6 +22,7 @@ import {
   productRoutes,
   purchaseRoutes,
   salesReturnRoutes,
+  savingsWithdrawRoutes,
   stockTransferRoutes,
   supplierRoutes,
   unitRoutes,
@@ -30,6 +32,7 @@ import {
 import { roleRoutes } from "./routes/role";
 import { installmentRoutes } from "./routes/installment";
 import { depositRoutes } from "./routes/deposit";
+import { incomeTypeRoutes } from "./routes/income-type";
 
 const mount = async (app: Application) => {
   await appDataSource.initialize();
@@ -66,6 +69,9 @@ const mount = async (app: Application) => {
   app.use("/api/v1/payments", isAuthenticated, paymentRoutes);
   app.use("/api/v1/installments", isAuthenticated, installmentRoutes);
   app.use("/api/v1/saving-deposits", isAuthenticated, depositRoutes);
+  app.use("/api/v1/income-type", isAuthenticated, incomeTypeRoutes);
+  app.use("/api/v1/income", isAuthenticated, incomeRoutes);
+  app.use("/api/v1/withdraw", isAuthenticated, savingsWithdrawRoutes);
   app.get("/api/v1/healthz", (_req, res) => {
     res.status(200).json({ status: "ok" });
   });

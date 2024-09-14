@@ -18,3 +18,6 @@ export * from "./expense";
 export * from "./expense-type";
 export * from "./sales-return";
 export * from "./payments";
+export * from "./income";
+export * from "./income-type";
+export * from "./savings-withdraw";

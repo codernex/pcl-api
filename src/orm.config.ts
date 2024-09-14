@@ -28,6 +28,9 @@ import {
   ExpenseType,
   SalesReturn,
   SavingDeposit,
+  Income,
+  IncomeType,
+  SavingsWithdraw,
 } from "./entities";
 import { PurchasedCart } from "./entities/purchased.cart";
 import { Warehouse } from "./entities/warehouse";
@@ -78,6 +81,9 @@ export const appDataSource = new DataSource({
     SalesReturn,
     Seasonal,
     SavingDeposit,
+    Income,
+    IncomeType,
+    SavingsWithdraw
   ],
   synchronize: true,
   subscribers: [

@@ -6,7 +6,7 @@ import {
   TransactionType,
 } from "../entities";
 import { appDataSource } from "../orm.config";
-import { ErrorHandler, requestHandler } from "../utils";
+import { ErrorHandler, isDateValid, requestHandler } from "../utils";
 import { Controller } from "./base";
 
 export class AccountController extends Controller<Account> {
@@ -53,12 +53,45 @@ export class AccountController extends Controller<Account> {
 
   get = requestHandler(async (req, res, next) => {
     try {
-      const account = await this.repository.find();
+      const account = await this.repository
+        .createQueryBuilder("a")
+        .leftJoinAndSelect("a.accountHistory", "ah")
+        .orderBy("a.id", "DESC")
+        .orderBy("ah.id", "DESC")
+        .getMany();
       return this.success(res, account);
     } catch (err) {
       return this.failed(err, next);
     }
   });
+
+  getAccountHistory = requestHandler(
+    async (req, res, next) => {
+      try {
+        const qb = this.getRepository(AccountHistory)
+          .createQueryBuilder("ah")
+          .leftJoinAndSelect("ah.account", "a")
+          .andWhere("a.accountName = 'Cash Book'");
+        if (req.query.startDate && req.query.endDate) {
+          const isValid = isDateValid(req.query.startDate, req.query.endDate);
+          if (!isValid) {
+            return this.failed("Invalid Date", next);
+          }
+          qb.andWhere("DATE(ah.createdAt) BETWEEN :startDate AND :endDate", {
+            startDate: req.query.startDate,
+            endDate: req.query.endDate,
+          });
+        }
+        const account = await qb.orderBy("ah.id", "DESC").getMany();
+        return this.success(res, account);
+      } catch (err) {
+        return this.failed(err, next);
+      }
+    },
+    {
+      query: {} as any,
+    }
+  );
 
   updateCashRegister = requestHandler(
     async (req, res, next) => {
