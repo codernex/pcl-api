@@ -28,5 +28,5 @@ export * from "./expense-type";
 export * from "./sales-return";
 export * from "./saving-deposit";
 export * from "./income-type";
-export * from "./Income";
+export * from "./income-others";
 export * from "./savings-withdraw";

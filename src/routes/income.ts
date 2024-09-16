@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { IncomeController } from "../controller/income";
+import { IncomeController } from "../controller";
 
 export const incomeRoutes = Router();
 const { create, get } = new IncomeController();

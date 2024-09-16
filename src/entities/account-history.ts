@@ -2,10 +2,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Account } from "./account";
+import { Customer } from "./customer";
 
 export enum TransactionType {
   CREDIT = "CREDIT",
@@ -27,6 +29,12 @@ export class AccountHistory {
     onDelete: "CASCADE",
   })
   account: Account;
+
+  @ManyToOne(() => Customer, {
+    cascade: true,
+  })
+  @JoinColumn()
+  customer: Customer;
 
   @Column({ type: "double" })
   amount: number;

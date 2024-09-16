@@ -1,5 +1,6 @@
-import { Customer, SavingsWithdraw } from "../entities";
+import { Customer, SavingsWithdraw, TransactionType } from "../entities";
 import { ErrorHandler, isDateValid, requestHandler } from "../utils";
+import { AccountController } from "./account";
 import { Controller } from "./base";
 
 export class SavingsWithdrawController extends Controller<SavingsWithdraw> {
@@ -72,6 +73,14 @@ export class SavingsWithdrawController extends Controller<SavingsWithdraw> {
         const savingsWithdraw = new SavingsWithdraw();
         savingsWithdraw.amount = parseInt(req.body.amount);
         savingsWithdraw.customer = customer;
+
+        await AccountController.updateBalance(
+          savingsWithdraw.amount,
+          TransactionType.CREDIT,
+          "Savings Withdraw",
+          "Savings withdraw from savings account",
+          customer
+        );
 
         await this.repository.save(savingsWithdraw);
         return this.success(res, savingsWithdraw, 201);

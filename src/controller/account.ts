@@ -3,6 +3,7 @@ import {
   AccountHistory,
   AccountState,
   AccountType,
+  Customer,
   TransactionType,
 } from "../entities";
 import { appDataSource } from "../orm.config";
@@ -71,6 +72,7 @@ export class AccountController extends Controller<Account> {
         const qb = this.getRepository(AccountHistory)
           .createQueryBuilder("ah")
           .leftJoinAndSelect("ah.account", "a")
+          .leftJoinAndSelect("ah.customer", "c")
           .andWhere("a.accountName = 'Cash Book'");
         if (req.query.startDate && req.query.endDate) {
           const isValid = isDateValid(req.query.startDate, req.query.endDate);
@@ -127,7 +129,8 @@ export class AccountController extends Controller<Account> {
     amount: number,
     type: TransactionType,
     remarkType?: string,
-    remark?: string
+    remark?: string,
+    customer?: Customer
   ) {
     if (
       amount === 0 ||
@@ -145,7 +148,11 @@ export class AccountController extends Controller<Account> {
     } else {
       account.balance -= amount;
     }
+
     const history = new AccountHistory();
+    if (customer) {
+      history.customer = customer;
+    }
     history.account = account;
     history.amount = amount;
     history.transactionType = type;

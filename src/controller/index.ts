@@ -17,4 +17,5 @@ export * from "./expense";
 export * from "./expense-type";
 export * from "./sales-return";
 export * from "./payments";
-export * from './savings-withdraw'
+export * from './savings-withdraw';
+export * from './income-others'

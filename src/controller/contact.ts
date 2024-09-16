@@ -379,6 +379,14 @@ export class ContactController extends Controller<Customer> {
         deposit.amount = Number.parseInt(req.body?.amount);
         deposit.customer = contact;
 
+        await AccountController.updateBalance(
+          deposit.amount,
+          TransactionType.DEBIT,
+          "DEPOSIT_SAVINGS",
+          "Deposit savings to savings customer",
+          contact
+        );
+
         await this.getRepository(SavingDeposit).save(deposit);
 
         this.success(res, contact);
