@@ -159,7 +159,7 @@ export class ContactController extends Controller<Customer> {
         );
         await this.getRepository(PaymentOption).save(payment);
 
-        this.success(res, contact, 200);
+        this.success(res, payment, 200);
       } catch (err) {
         return ApiError(err, 500, next);
       }
@@ -365,7 +365,6 @@ export class ContactController extends Controller<Customer> {
 
   collectSeasonalInstallment = requestHandler(async (req, res, next) => {
     try {
-      
     } catch (error) {
       this.failed(error, next);
     }
