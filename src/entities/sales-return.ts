@@ -1,11 +1,15 @@
 import {
   Column,
   Entity,
+  JoinColumn,
   JoinTable,
   ManyToMany,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Product } from "./product";
+import { Invoice } from "./invoice";
+import { Customer } from "./customer";
 
 @Entity()
 export class SalesReturn {
@@ -20,6 +24,14 @@ export class SalesReturn {
     name: "sales_return_products",
   })
   products: Product[];
+
+  @ManyToOne(() => Customer, { cascade: true })
+  @JoinColumn()
+  customer: Customer;
+
+  @ManyToOne(() => Invoice, { cascade: true })
+  @JoinColumn()
+  invoice: Invoice;
 
   addProduct(product: Product) {
     if (this.products == null) {

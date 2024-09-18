@@ -42,4 +42,7 @@ export class Cart {
     cascade: true,
   })
   invoice: Invoice;
+
+  @Column({default:false})
+  isReturned: boolean
 }

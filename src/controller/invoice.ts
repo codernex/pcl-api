@@ -192,7 +192,13 @@ export class InvoiceController extends Controller<Invoice> {
 
         // Creating cart for invoice
         await this.addToCarts(carts, invoice, cartsData);
-        await this.updateAccount(paid_amount - change_amount || 0);
+        await AccountController.updateBalance(
+          paid_amount - change_amount || 0,
+          TransactionType.DEBIT,
+          "Sales To Customer",
+          "Customer Sales",
+          contact
+        );
         await this.repository.save(invoice);
 
         this.success(
@@ -430,18 +436,5 @@ export class InvoiceController extends Controller<Invoice> {
       seasonals.push(seasonal);
     }
     return seasonals;
-  }
-
-  private async updateAccount(amount: number) {
-    /**
-     * Update Cash Book
-     */
-    const account = await AccountController.currentAccount();
-    account.balance += amount;
-    const history = new AccountHistory();
-    history.account = account;
-    history.amount = amount;
-    history.transactionType = TransactionType.DEBIT; // Income
-    await this.getRepository(AccountHistory).save(history);
   }
 }

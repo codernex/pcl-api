@@ -144,9 +144,9 @@ export class AccountController extends Controller<Account> {
     const account = await AccountController.currentAccount();
 
     if (type === "DEBIT") {
-      account.balance += amount;
+      account.balance = Math.round(account.balance + amount);
     } else {
-      account.balance -= amount;
+      account.balance = Math.round(Math.max(account.balance - amount, 0));
     }
 
     const history = new AccountHistory();
