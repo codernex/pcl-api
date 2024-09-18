@@ -393,6 +393,7 @@ export class InvoiceController extends Controller<Invoice> {
       installment.amount = installment_amount;
       installment.invoice = invoice;
       installment.customer = contact;
+      installment.actual_amount = installment_amount;
 
       // Calculate the due date for each installment
       const dueDate = new Date();
@@ -423,6 +424,7 @@ export class InvoiceController extends Controller<Invoice> {
       seasonal.amount = installment_amount;
       seasonal.invoice = invoice;
       seasonal.customer = contact;
+      seasonal.actual_amount = installment_amount;
       // Calculate the due date for each installment
       const currentDate = new Date();
       const dueDate = new Date(payment_till_date);

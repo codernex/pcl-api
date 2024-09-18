@@ -363,6 +363,14 @@ export class ContactController extends Controller<Customer> {
     }
   );
 
+  collectSeasonalInstallment = requestHandler(async (req, res, next) => {
+    try {
+      
+    } catch (error) {
+      this.failed(error, next);
+    }
+  });
+
   deposit = requestHandler(
     async (req, res, next) => {
       try {

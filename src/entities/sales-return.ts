@@ -1,5 +1,6 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   JoinTable,
@@ -32,6 +33,9 @@ export class SalesReturn {
   @ManyToOne(() => Invoice, { cascade: true })
   @JoinColumn()
   invoice: Invoice;
+
+  @CreateDateColumn()
+  created_at: Date;
 
   addProduct(product: Product) {
     if (this.products == null) {

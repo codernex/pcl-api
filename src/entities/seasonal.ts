@@ -16,6 +16,9 @@ export class Seasonal {
   @Column()
   amount: number;
 
+  @Column({default:0})
+  actual_amount: number;
+
   @Column()
   date: string;
 
