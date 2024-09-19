@@ -25,19 +25,21 @@ export class ContactController extends Controller<Customer> {
       try {
         this.validateErr(req.body, "name", "mobile");
 
-        const isExist = await this.repository.count({
-          where: {
-            account_number: req.body.account_number,
-          },
-        });
+        // Handling Error
+        if (req.body.account_number && req.body.account_number.length > 0) {
+          const isExist = await this.repository.count({
+            where: {
+              account_number: req.body.account_number,
+            },
+          });
 
-        if (isExist) {
-          return this.failed(
-            "Customer Already Exist with this Account Number",
-            next
-          );
+          if (isExist) {
+            return this.failed(
+              "Customer Already Exist with this Account Number",
+              next
+            );
+          }
         }
-
         const currentDate = new Date();
 
         // Set the time to the start of the day (midnight)
@@ -46,7 +48,7 @@ export class ContactController extends Controller<Customer> {
         // Handling Error
         const contact = new Customer();
 
-        if (req.body.account_number) {
+        if (req.body.account_number && req.body.account_number.length > 0) {
           contact.account_number = req.body.account_number;
         } else {
           const count = await this.repository.count({
