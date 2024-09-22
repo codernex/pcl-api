@@ -1,6 +1,7 @@
 import { In } from "typeorm";
 import {
   Cart,
+  Installments,
   Invoice,
   Product,
   SalesReturn,
@@ -9,6 +10,7 @@ import {
 import { ErrorHandler, isDateValid, requestHandler } from "../utils";
 import { Controller } from "./base";
 import { AccountController } from "./account";
+import { Seasonal } from "../entities/seasonal";
 
 export class SalesReturnController extends Controller<SalesReturn> {
   constructor() {
@@ -18,6 +20,7 @@ export class SalesReturnController extends Controller<SalesReturn> {
   createSalesReturn = requestHandler(
     async (req, res, next) => {
       try {
+        this.validateErr(req.body, "invoiceId");
         const salesReturn = new SalesReturn();
 
         const products = await this.getRepository(Product).find({
@@ -32,6 +35,8 @@ export class SalesReturnController extends Controller<SalesReturn> {
           },
           relations: {
             contact: true,
+            seasonals: true,
+            installments: true,
           },
         });
 
@@ -73,6 +78,30 @@ export class SalesReturnController extends Controller<SalesReturn> {
           salesReturn.addProduct(product);
           salesCart.isReturned = true;
           await this.getRepository(Cart).save(salesCart);
+        }
+        if (invoice.sales_type === "HIRE" && invoice.due_amount) {
+          invoice.contact.hire_due = Math.max(
+            invoice.contact.hire_due - req.body.returnAmount,
+            0
+          );
+          await this.getRepository(Installments).delete({
+            id: In(invoice.installments.map((i) => i.id)),
+            paid: false,
+          });
+        } else if (invoice.sales_type === "SEASONAL" && invoice.due_amount) {
+          await this.getRepository(Seasonal).delete({
+            id: In(invoice.seasonals.map((i) => i.id)),
+            paid: false,
+          });
+          invoice.contact.hire_due = Math.max(
+            invoice.contact.hire_due - req.body.returnAmount,
+            0
+          );
+        } else {
+          invoice.contact.cash_due = Math.max(
+            invoice.contact.cash_due - req.body.returnAmount,
+            0
+          );
         }
         salesReturn.amount = req.body.returnAmount;
         salesReturn.invoice = invoice;

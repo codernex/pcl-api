@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { Like } from "typeorm";
 import {
   Customer,
@@ -11,7 +11,12 @@ import {
   SavingDeposit,
   TransactionType,
 } from "../entities";
-import { ApiError, ErrorHandler, requestHandler } from "../utils";
+import {
+  ApiError,
+  ErrorHandler,
+  getNextMonthDate,
+  requestHandler,
+} from "../utils";
 import { AccountController } from "./account";
 import { Controller } from "./base";
 
@@ -106,6 +111,19 @@ export class ContactController extends Controller<Customer> {
             id: req.params.id,
           },
         });
+
+        const isExist = await this.repository.count({
+          where: {
+            account_number: req.body.account_number,
+          },
+        });
+
+        if (isExist) {
+          throw new ErrorHandler(
+            "Customer Already Exist with this Account Number",
+            404
+          );
+        }
 
         Object.assign(contact, {
           ...req.body,
@@ -328,7 +346,7 @@ export class ContactController extends Controller<Customer> {
         }
 
         if (invoice.installments.length === 1) {
-          this.handleSingleInstallment(installment, paid_amount);
+          await this.handleSingleInstallment(installment, paid_amount);
         } else {
           await this.handleMultipleInstallments(
             installment,
@@ -349,9 +367,7 @@ export class ContactController extends Controller<Customer> {
           paid_amount,
           req,
           0,
-          invoice.installments.length === 1
-            ? "COLLECT_LPR"
-            : "COLLECT_INSTALLMENT"
+          "COLLECT_INSTALLMENT"
         );
         await this.getRepository(PaymentOption).save(payment);
         await this.getRepository(Installments).save(installment);
@@ -507,18 +523,28 @@ export class ContactController extends Controller<Customer> {
     return payment;
   }
 
-  private handleSingleInstallment = (
+  private handleSingleInstallment = async (
     installment: Installments,
     amount: number
   ) => {
     if (amount !== installment.amount) {
-      throw new ErrorHandler(
-        `LPR Amount must be exactly equal to the installment amount of ${installment.amount}`,
-        404
+      const newInstallment = new Installments();
+      newInstallment.amount = Math.max(installment.amount - amount, 0);
+      newInstallment.paid = false;
+      newInstallment.actual_amount = installment.actual_amount;
+      newInstallment.customer = installment.customer;
+      newInstallment.invoice = installment.invoice;
+      newInstallment.date = format(
+        getNextMonthDate(parse(installment.date, "dd-MM-yyyy", new Date())),
+        "dd-MM-yyyy"
       );
+      await this.getRepository(Installments).save(newInstallment);
+      installment.paid = true;
+      installment.amount = 0;
+    } else {
+      installment.paid = true;
+      installment.amount = 0;
     }
-    installment.paid = true;
-    installment.amount = 0;
   };
 
   private handleMultipleInstallments = async (

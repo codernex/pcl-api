@@ -1,4 +1,4 @@
-import { isBefore, isEqual, parseISO } from "date-fns";
+import { addMonths, isBefore, isEqual, parseISO } from "date-fns";
 import { NextFunction, Response } from "express";
 import * as fs from "fs/promises";
 import jwt from "jsonwebtoken";
@@ -212,14 +212,14 @@ export function monthDifference(date1: Date, date2: Date): number {
   return yearDiff * 12 + monthDiff;
 }
 
-
-export const isDateValid = (
-  startDate: string,
-  endDate: string,
-): boolean => {
+export const isDateValid = (startDate: string, endDate: string): boolean => {
   const start = parseISO(startDate);
   const end = parseISO(endDate);
 
   // Check if start date is before or equal to the end date
   return isBefore(start, end) || isEqual(start, end);
 };
+
+export function getNextMonthDate(date: Date): Date {
+  return addMonths(date, 1);
+}

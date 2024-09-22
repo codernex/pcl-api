@@ -10,14 +10,18 @@ export class ReportController {
     try {
       const qb = this.getRepository(Customer)
         .createQueryBuilder("customer")
+        .leftJoinAndSelect("customer.invoices", "invoices")
         .select([
           "customer.id",
           "customer.name",
           "customer.cash_due",
-          "customer.account_number",
           "customer.mobile",
+          "customer.present_address",
+          "customer.permanent_address",
+          "invoices.invoice_id",
         ])
-        .andWhere("customer.cash_due > 0");
+        .andWhere("customer.cash_due > 0")
+        .andWhere("invoices.sales_type = 'RETAIL'");
 
       const data = await qb.orderBy("customer.id", "DESC").getMany();
       return this.success(res, data);
