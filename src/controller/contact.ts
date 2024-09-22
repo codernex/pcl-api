@@ -359,7 +359,8 @@ export class ContactController extends Controller<Customer> {
           paid_amount,
           TransactionType.DEBIT,
           "COLLECT_INSTALLMENT",
-          "Collect Installment from customer"
+          "Collect Installment from customer",
+          customer
         );
 
         const payment = this.createHirePayment(
@@ -455,7 +456,8 @@ export class ContactController extends Controller<Customer> {
           Number.parseInt(req.body.amount),
           TransactionType.DEBIT,
           "COLLECT_LPR",
-          "Collect LPR from customer"
+          "Collect LPR from customer",
+          customer
         );
         await this.getRepository(PaymentOption).save(payment);
 
