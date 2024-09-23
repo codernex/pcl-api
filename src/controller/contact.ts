@@ -1,4 +1,4 @@
-import { format, parse } from "date-fns";
+import { addMonths, format, parse } from "date-fns";
 import { Like } from "typeorm";
 import {
   Customer,
@@ -19,6 +19,7 @@ import {
 } from "../utils";
 import { AccountController } from "./account";
 import { Controller } from "./base";
+import { Seasonal } from "../entities/seasonal";
 
 export class ContactController extends Controller<Customer> {
   constructor() {
@@ -32,11 +33,12 @@ export class ContactController extends Controller<Customer> {
 
         // Handling Error
         if (req.body.account_number && req.body.account_number.length > 0) {
-          const isExist = await this.repository.count({
-            where: {
-              account_number: req.body.account_number,
-            },
-          });
+          const isExist = await this.repository
+            .createQueryBuilder("c")
+            .where("c.account_number = :account_number", {
+              account_number: req.body.account_number?.trim(),
+            })
+            .getOne();
 
           if (isExist) {
             return this.failed(
@@ -273,7 +275,49 @@ export class ContactController extends Controller<Customer> {
           throw new ErrorHandler("Customer must have atleast 2 granter", 404);
         }
 
+        if (custoemr.seasonal_approved) {
+          throw new ErrorHandler(
+            "Customer already approved for seasonal hire, can't approve for hire",
+            404
+          );
+        }
+
         custoemr.approved = true;
+        await this.repository.save(custoemr);
+
+        this.success(res, custoemr, 200);
+      } catch (error) {
+        this.failed(error, next);
+      }
+    },
+    {
+      params: { id: "" },
+    }
+  );
+
+  seasonalApproved = requestHandler(
+    async (req, res, next) => {
+      try {
+        this.validateErr(req.params, "id");
+
+        const custoemr = await this.repository.findOne({
+          where: {
+            id: parseInt(req.params.id),
+          },
+        });
+
+        if (!custoemr) {
+          throw new ErrorHandler("Customer not found", 404);
+        }
+
+        if (custoemr.approved) {
+          throw new ErrorHandler(
+            "Customer already approved for hire, can't approve for seasonal hire",
+            404
+          );
+        }
+
+        custoemr.seasonal_approved = true;
         await this.repository.save(custoemr);
 
         this.success(res, custoemr, 200);
@@ -333,6 +377,8 @@ export class ContactController extends Controller<Customer> {
           throw new ErrorHandler("Amount must be greater than 0", 404);
         }
 
+        invoice.due_amount = Math.max(invoice.due_amount - paid_amount, 0);
+
         const totalInstallmentAmount = invoice.installments.reduce(
           (total, installment) => total + installment.amount,
           0
@@ -364,11 +410,12 @@ export class ContactController extends Controller<Customer> {
         );
 
         const payment = this.createHirePayment(
-          installment.customer,
+          customer,
           paid_amount,
           req,
           0,
-          "COLLECT_INSTALLMENT"
+          "COLLECT_INSTALLMENT",
+          invoice
         );
         await this.getRepository(PaymentOption).save(payment);
         await this.getRepository(Installments).save(installment);
@@ -382,12 +429,164 @@ export class ContactController extends Controller<Customer> {
     }
   );
 
-  collectSeasonalInstallment = requestHandler(async (req, res, next) => {
-    try {
-    } catch (error) {
-      this.failed(error, next);
+  collectSeasonalInstallment = requestHandler(
+    async (req, res, next) => {
+      try {
+        this.validateErr(req.body, "amount", "seasonalId", "customerId");
+
+        const customer = await this.getRepository(Customer).findOne({
+          where: {
+            id: req.body.customerId,
+          },
+        });
+
+        if (!customer) {
+          throw new ErrorHandler("Customer not found", 404);
+        }
+
+        if (customer.is_hire_account_closed) {
+          throw new ErrorHandler("Customer's hire account is closed", 404);
+        }
+
+        const seasonal = await this.getRepository(Seasonal).findOne({
+          where: {
+            id: req.body.seasonalId,
+          },
+          relations: {
+            customer: true,
+            invoice: true,
+          },
+        });
+
+        if (!seasonal) {
+          throw new ErrorHandler("Seasonal Installment not found", 404);
+        }
+
+        const paid_amount = Number.parseInt(req.body?.amount);
+
+        // Gettings All Installments that are not paid
+        const invoice = await this.getRepository(Invoice)
+          .createQueryBuilder("iv")
+          .leftJoinAndSelect("iv.seasonals", "seasonals")
+          .where("iv.id = :id", { id: seasonal.invoice.id })
+          .andWhere("seasonals.paid = :paid", { paid: false })
+          .getOneOrFail();
+
+        if (paid_amount < 1) {
+          throw new ErrorHandler("Amount must be greater than 0", 404);
+        }
+
+        const totalSeasonalAmount = invoice.seasonals.reduce(
+          (total, installment) => total + installment.amount,
+          0
+        );
+
+        if (paid_amount > totalSeasonalAmount) {
+          throw new ErrorHandler(
+            "Amount must be less than or equal to total seasonal installment amount",
+            404
+          );
+        }
+
+        invoice.due_amount = Math.max(invoice.due_amount - paid_amount, 0);
+
+        if (invoice.seasonals.length === 1) {
+          await this.handleSingleSeasonalInstallment(seasonal, paid_amount);
+        } else {
+          await this.handleMultipleSeasonalInstallment(
+            seasonal,
+            paid_amount,
+            invoice
+          );
+        }
+
+        await AccountController.updateBalance(
+          paid_amount,
+          TransactionType.DEBIT,
+          "COLLECT_SEASONAL_INSTALLMENT",
+          "Collect Installment from customer",
+          customer
+        );
+
+        const payment = this.createHirePayment(
+          customer,
+          paid_amount,
+          req,
+          0,
+          "COLLECT_SEASONAL_INSTALLMENT",
+          invoice
+        );
+        await this.getRepository(PaymentOption).save(payment);
+        await this.getRepository(Installments).save(seasonal);
+        this.success(res, { payment, seasonal }, 200);
+      } catch (error) {
+        this.failed(error, next);
+      }
+    },
+    {
+      body: {} as any,
     }
-  });
+  );
+
+  revertInstallment = requestHandler(
+    async (req, res, next) => {
+      try {
+        this.validateErr(req.body, "paymentId");
+
+        const payment = await this.getRepository(PaymentOption).findOne({
+          where: {
+            id: req.body.paymentId,
+          },
+          relations: {
+            contact: true,
+          },
+        });
+        if (!payment) {
+          return this.failed("Installment not found", next);
+        }
+
+        if (
+          payment?.type === "COLLECT_SEASONAL_LPR" ||
+          payment?.type === "COLLECT_LPR"
+        ) {
+          return this.failed("LPR Payment type cannot be reverted", next);
+        }
+
+        if (payment.contact.is_hire_account_closed) {
+          return this.failed("Customer's hire account is closed", next);
+        }
+
+        const installment = new Installments();
+        installment.actual_amount = 0;
+        installment.amount = payment.paid_amount;
+        installment.customer = payment.contact;
+        installment.date = format(
+          addMonths(payment.created_at, 1),
+          "dd-MM-yyyy"
+        );
+        installment.paid = false;
+        payment.contact.hire_due += payment.paid_amount;
+        payment.isReverted = true;
+
+        await AccountController.updateBalance(
+          installment.amount,
+          TransactionType.CREDIT,
+          "REVERT_INSTALLMENT",
+          "Revert Installment",
+          payment.contact
+        );
+
+        await this.getRepository(Installments).save(installment);
+        await this.getRepository(PaymentOption).save(payment);
+        this.success(res, installment, 200);
+      } catch (err) {
+        return this.failed(err, next);
+      }
+    },
+    {
+      body: {} as any,
+    }
+  );
 
   deposit = requestHandler(
     async (req, res, next) => {
@@ -502,7 +701,8 @@ export class ContactController extends Controller<Customer> {
     amount: number,
     req: any,
     changeAmount: number,
-    type: string
+    type: string,
+    invoice?: Invoice | undefined
   ) {
     contact.hire_due = Math.max(
       contact.hire_due - Number.parseInt(req.body?.amount),
@@ -546,6 +746,29 @@ export class ContactController extends Controller<Customer> {
     } else {
       installment.paid = true;
       installment.amount = 0;
+    }
+  };
+  private handleSingleSeasonalInstallment = async (
+    seasonal: Seasonal,
+    amount: number
+  ) => {
+    if (amount !== seasonal.amount) {
+      const newInstallment = new Seasonal();
+      newInstallment.amount = Math.max(seasonal.amount - amount, 0);
+      newInstallment.paid = false;
+      newInstallment.actual_amount = seasonal.actual_amount;
+      newInstallment.customer = seasonal.customer;
+      newInstallment.invoice = seasonal.invoice;
+      newInstallment.date = format(
+        getNextMonthDate(parse(seasonal.date, "dd-MM-yyyy", new Date())),
+        "dd-MM-yyyy"
+      );
+      await this.getRepository(Seasonal).save(newInstallment);
+      seasonal.paid = true;
+      seasonal.amount = 0;
+    } else {
+      seasonal.paid = true;
+      seasonal.amount = 0;
     }
   };
 
@@ -596,5 +819,53 @@ export class ContactController extends Controller<Customer> {
     installment.amount = 0;
     installment.paid = true;
     await this.getRepository(Installments).save(installment);
+  };
+
+  private handleMultipleSeasonalInstallment = async (
+    installment: Seasonal,
+    amount: number,
+    invoice: Invoice
+  ) => {
+    const lastSeasonal = invoice.seasonals[invoice.seasonals.length - 1];
+
+    const handleExcess = async (excessAmount: number) => {
+      lastSeasonal.amount -= excessAmount;
+
+      if (lastSeasonal.amount <= 0) {
+        lastSeasonal.paid = true;
+        const extraAmount = Math.abs(lastSeasonal.amount);
+        lastSeasonal.amount = 0;
+
+        if (extraAmount > 0 && invoice.seasonals.length > 1) {
+          const secondLastSeasonal =
+            invoice.seasonals[invoice.seasonals.length - 2];
+          secondLastSeasonal.amount -= extraAmount;
+
+          if (secondLastSeasonal.amount <= 0) {
+            secondLastSeasonal.paid = true;
+            secondLastSeasonal.amount = 0;
+          }
+
+          await this.getRepository(Seasonal).save(secondLastSeasonal);
+        }
+      }
+
+      await this.getRepository(Seasonal).save(lastSeasonal);
+    };
+
+    if (amount > installment.amount) {
+      const excessAmount = amount - installment.amount;
+      await handleExcess(excessAmount);
+    } else if (amount < installment.amount) {
+      if (invoice.seasonals.length > 1) {
+        const secondInstallment = invoice.seasonals[1];
+        secondInstallment.amount += installment.amount - amount;
+        await this.getRepository(Seasonal).save(secondInstallment);
+      }
+    }
+
+    installment.amount = 0;
+    installment.paid = true;
+    await this.getRepository(Seasonal).save(installment);
   };
 }

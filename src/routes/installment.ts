@@ -42,3 +42,42 @@ installmentRoutes.get(
     { query: {} as any }
   )
 );
+
+installmentRoutes.get(
+  "/seasonal",
+  requestHandler(
+    async (req, res, next) => {
+      try {
+        const qb = appDataSource
+          .getRepository(PaymentOption)
+          .createQueryBuilder("p")
+          .leftJoinAndSelect("p.contact", "contact")
+          .andWhere(
+            "p.type IN('COLLECT_SEASONAL_INSTALLMENT','COLLECT_SEASONAL_LPR')"
+          );
+
+        if (req.query.startDate && req.query.endDate) {
+          const isDate = isDateValid(req.query.startDate, req.query.endDate);
+          if (!isDate) {
+            throw new ErrorHandler("Invalid Date", 404);
+          }
+          qb.andWhere("DATE(p.created_at) BETWEEN :startDate AND :endDate", {
+            startDate: req.query.startDate,
+            endDate: req.query.endDate,
+          });
+        }
+
+        const installments = await qb.orderBy("p.created_at", "DESC").getMany();
+
+        res.status(200).json({
+          status: 200,
+          success: true,
+          data: installments,
+        });
+      } catch (error) {
+        next(error);
+      }
+    },
+    { query: {} as any }
+  )
+);

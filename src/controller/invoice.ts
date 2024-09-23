@@ -1,6 +1,5 @@
 import { format } from "date-fns";
 import {
-  AccountHistory,
   Cart,
   Customer,
   Installments,
@@ -90,14 +89,36 @@ export class InvoiceController extends Controller<Invoice> {
 
         // Searching for contact
         const contact = await this.getRepository(Customer)
-          .createQueryBuilder()
-          .where("id = :id", { id: req.body.customer_id })
+          .createQueryBuilder("c")
+          .where("c.id = :id", { id: req.body.customer_id })
+          .leftJoinAndSelect("c.seasonal", "seasonal")
+          .leftJoinAndSelect("c.installments", "i")
           .getOneOrFail();
 
         if (req.body.salesType === "HIRE" && contact.hire_due) {
           return this.failed("This customer has a hire due", next);
         }
 
+        if (req.body.salesType === "HIRE" && contact.installments.length) {
+          return this.failed(
+            "This customer has previous installments, please contact admin",
+            next
+          );
+        }
+
+        if (req.body.salesType === "SEASONAL" && !contact.seasonal_approved) {
+          return this.failed(
+            "This customer is not approved for Seasonal Sales",
+            next
+          );
+        }
+
+        if (req.body.salesType === "SEASONAL" && contact.seasonal.length) {
+          return this.failed(
+            "This customer has previous seasonal sales, please contact admin",
+            next
+          );
+        }
         if (req.body.salesType === "HIRE" && !contact.approved) {
           throw new ErrorHandler(
             "Customer is not approved For Hire Sales",
@@ -195,7 +216,11 @@ export class InvoiceController extends Controller<Invoice> {
         await AccountController.updateBalance(
           paid_amount - change_amount || 0,
           TransactionType.DEBIT,
-          "Sales To Customer",
+          req.body.salesType === "HIRE" ||
+            req.body.salesType === "SAVINGS_HIRE" ||
+            req.body.salesType === "SEASONAL"
+            ? "DOWN_PAYMENT"
+            : "SALES",
           "Customer Sales",
           contact
         );
@@ -292,7 +317,12 @@ export class InvoiceController extends Controller<Invoice> {
     payment.amount = amount;
     payment.paid_amount = paid_amount;
     payment.contact = contact;
-    payment.type = "SELLS";
+    payment.type =
+      req.body.salesType === "HIRE" ||
+      req.body.salesType === "SAVINGS_HIRE" ||
+      req.body.salesType === "SEASONAL"
+        ? "DOWN_PAYMENT"
+        : "SALES";
     payment.recived_by = "Owner";
     payment.reciver_id = contact.id;
     payment.payment_method = req.body.payment_method;
@@ -316,9 +346,6 @@ export class InvoiceController extends Controller<Invoice> {
       const product = await this.getRepository(Product).findOneOrFail({
         where: { id: id.toString() },
       });
-      if (product.is_returned) {
-        throw new Error("Product is Returned");
-      }
       if (product.quantity < cart.quantity) {
         throw new Error("Product quantity is not available");
       }

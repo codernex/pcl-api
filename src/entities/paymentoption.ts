@@ -8,6 +8,7 @@ import {
 } from "typeorm";
 import { Customer } from "./customer";
 import { Supplier } from "./supplier";
+import { Invoice } from "./invoice";
 export enum PaymentMethod {
   CASH = "CASH",
 }
@@ -77,6 +78,10 @@ export class PaymentOption {
   })
   supplier: Supplier;
 
+  @Column({ default: false })
+  isReverted: boolean;
+
+  
   @Column({ nullable: true })
   payment_by_id: number;
 

@@ -83,6 +83,9 @@ export class Customer extends BaseEntity {
   @Column({ nullable: true, default: false })
   approved: boolean;
 
+  @Column({ default: false })
+  seasonal_approved: boolean;
+
   @OneToMany(() => Installments, (installments) => installments.customer, {
     onUpdate: "CASCADE",
     onDelete: "RESTRICT",
@@ -105,7 +108,7 @@ export class Customer extends BaseEntity {
     default: false,
   })
   savingsCustomer: false;
-  
+
   @CreateDateColumn()
   created_at: Date;
 
