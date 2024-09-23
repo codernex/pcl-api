@@ -177,7 +177,8 @@ export class ContactController extends Controller<Customer> {
           amount - changeAmount,
           TransactionType.DEBIT,
           "COLLECT_DUE",
-          "Collect Retail Due From Customer"
+          "Collect Retail Due From Customer",
+          contact
         );
         await this.getRepository(PaymentOption).save(payment);
 

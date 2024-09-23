@@ -37,7 +37,6 @@ export class Account {
   @Column({ default: false })
   default: boolean;
 
-
   @Column({ enum: AccountState, type: "enum", nullable: true })
   accountState: AccountState;
 
@@ -48,8 +47,8 @@ export class Account {
   })
   accountHistory: AccountHistory[];
 
-  @Column({ type: "double", default: 0 })
-  balance: number;
+  @Column({ type: "text", nullable: true})
+  balance: string;
 
   @CreateDateColumn()
   createdAt: Date;

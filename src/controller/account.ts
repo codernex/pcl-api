@@ -34,7 +34,7 @@ export class AccountController extends Controller<Account> {
 
         const account = new Account();
         Object.assign(account, req.body);
-        account.balance = req.body.openingBalance;
+        account.balance = req.body.openingBalance.toString();
         const accountHistory = new AccountHistory();
         accountHistory.account = account;
         accountHistory.amount = req.body.openingBalance;
@@ -144,9 +144,13 @@ export class AccountController extends Controller<Account> {
     const account = await AccountController.currentAccount();
 
     if (type === "DEBIT") {
-      account.balance = Math.round(account.balance + amount);
+      account.balance = Math.round(
+        parseInt(account.balance) + parseInt(amount?.toString())
+      ).toString();
     } else {
-      account.balance = Math.round(Math.max(account.balance - amount, 0));
+      account.balance = Math.round(
+        parseInt(account.balance) - parseInt(amount?.toString())
+      ).toString();
     }
 
     const history = new AccountHistory();
@@ -154,7 +158,7 @@ export class AccountController extends Controller<Account> {
       history.customer = customer;
     }
     history.account = account;
-    history.amount = amount;
+    history.amount = parseInt(amount?.toString());
     history.transactionType = type;
     history.type = remarkType ?? "";
     history.remark = remark ?? "";

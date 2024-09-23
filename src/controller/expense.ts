@@ -33,7 +33,7 @@ export class ExpenseController extends Controller<Expense> {
 
         await AccountController.updateBalance(
           expense.amount,
-          TransactionType.DEBIT,
+          TransactionType.CREDIT,
           expense.expenseType.type,
           expense.expenseName
         );
