@@ -44,6 +44,12 @@ export class PaymentOption {
   @Column({ nullable: true, type: "enum", enum: PaymentMethod })
   payment_method: PaymentMethod;
 
+  @ManyToOne(() => Invoice, (iv) => iv.payments, {
+    cascade: true,
+    onUpdate: "CASCADE",
+  })
+  invoice: Invoice;
+
   @Column({
     nullable: true,
     enum: PaymentStatus,
@@ -81,7 +87,6 @@ export class PaymentOption {
   @Column({ default: false })
   isReverted: boolean;
 
-  
   @Column({ nullable: true })
   payment_by_id: number;
 

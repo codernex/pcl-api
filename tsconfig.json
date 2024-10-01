@@ -38,5 +38,5 @@
   "include": [
     "./src/**/*.ts",
     "./global.d.ts"
-  ]
+, "src/controller/income-type.ts"  ]
 }

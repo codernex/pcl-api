@@ -1,12 +1,20 @@
 import { DataSource } from "typeorm";
 import sanitizedConfig from "./config";
 import {
+  Account,
+  AccountHistory,
   Brand,
   Business,
   Cart,
   Category,
   Customer,
+  Expense,
+  ExpenseType,
+  Granter,
   Image,
+  Income,
+  IncomeType,
+  Installments,
   Invoice,
   InvoicePaper,
   Model,
@@ -16,23 +24,16 @@ import {
   ProductGroup,
   Purchase,
   Role,
-  StockTransfer,
-  Unit,
-  User,
-  Granter,
-  Supplier,
-  Account,
-  AccountHistory,
-  Expense,
-  Installments,
-  ExpenseType,
   SalesReturn,
   SavingDeposit,
-  Income,
-  IncomeType,
   SavingsWithdraw,
+  StockTransfer,
+  Supplier,
+  Unit,
+  User,
 } from "./entities";
 import { PurchasedCart } from "./entities/purchased.cart";
+import { Seasonal } from "./entities/seasonal";
 import { Warehouse } from "./entities/warehouse";
 import {
   InvoiceSubscriber,
@@ -42,7 +43,6 @@ import {
 import { BrandSubscriber } from "./subscriber/brand";
 import { CategorySubscriber } from "./subscriber/category";
 import { ProductGroupSubscriber } from "./subscriber/product-group";
-import { Seasonal } from "./entities/seasonal";
 
 export const appDataSource = new DataSource({
   type: "mysql",

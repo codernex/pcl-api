@@ -1,5 +1,5 @@
 import { addMonths, format, parse } from "date-fns";
-import { Like } from "typeorm";
+import { In, Like } from "typeorm";
 import {
   Customer,
   Granter,
@@ -11,6 +11,7 @@ import {
   SavingDeposit,
   TransactionType,
 } from "../entities";
+import { Seasonal } from "../entities/seasonal";
 import {
   ApiError,
   ErrorHandler,
@@ -19,7 +20,6 @@ import {
 } from "../utils";
 import { AccountController } from "./account";
 import { Controller } from "./base";
-import { Seasonal } from "../entities/seasonal";
 
 export class ContactController extends Controller<Customer> {
   constructor() {
@@ -114,19 +114,6 @@ export class ContactController extends Controller<Customer> {
           },
         });
 
-        const isExist = await this.repository.count({
-          where: {
-            account_number: req.body.account_number,
-          },
-        });
-
-        if (isExist) {
-          throw new ErrorHandler(
-            "Customer Already Exist with this Account Number",
-            404
-          );
-        }
-
         Object.assign(contact, {
           ...req.body,
         });
@@ -166,7 +153,7 @@ export class ContactController extends Controller<Customer> {
         if (contact.cash_due < amount) {
           throw new ErrorHandler("Can't pay more than due amount", 404);
         }
-        const payment = this.createCashPayment(
+        const payment = await this.createCashPayment(
           contact,
           amount - changeAmount,
           req,
@@ -402,6 +389,11 @@ export class ContactController extends Controller<Customer> {
           );
         }
 
+        customer.hire_due = Math.max(
+          customer.hire_due - Number.parseInt(req.body?.amount),
+          0
+        );
+
         await AccountController.updateBalance(
           paid_amount,
           TransactionType.DEBIT,
@@ -420,6 +412,7 @@ export class ContactController extends Controller<Customer> {
         );
         await this.getRepository(PaymentOption).save(payment);
         await this.getRepository(Installments).save(installment);
+        await this.repository.save(customer);
         this.success(res, { payment, installment }, 200);
       } catch (err) {
         this.failed(err, next);
@@ -501,6 +494,11 @@ export class ContactController extends Controller<Customer> {
           );
         }
 
+        customer.hire_due = Math.max(
+          customer.hire_due - Number.parseInt(req.body?.amount),
+          0
+        );
+
         await AccountController.updateBalance(
           paid_amount,
           TransactionType.DEBIT,
@@ -519,6 +517,7 @@ export class ContactController extends Controller<Customer> {
         );
         await this.getRepository(PaymentOption).save(payment);
         await this.getRepository(Installments).save(seasonal);
+        await this.repository.save(customer);
         this.success(res, { payment, seasonal }, 200);
       } catch (error) {
         this.failed(error, next);
@@ -533,7 +532,6 @@ export class ContactController extends Controller<Customer> {
     async (req, res, next) => {
       try {
         this.validateErr(req.body, "paymentId");
-
         const payment = await this.getRepository(PaymentOption).findOne({
           where: {
             id: req.body.paymentId,
@@ -542,6 +540,19 @@ export class ContactController extends Controller<Customer> {
             contact: true,
           },
         });
+
+        const invoice = await this.getRepository(Invoice).findOne({
+          where: {
+            contact: {
+              id: payment?.contact?.id,
+            },
+            sales_type: In(["HIRE", "SAVINGS_HIRE", "SEASONAL"]),
+          },
+        });
+        if (!invoice) {
+          return this.failed("Invoice not found", next);
+        }
+
         if (!payment) {
           return this.failed("Installment not found", next);
         }
@@ -566,6 +577,8 @@ export class ContactController extends Controller<Customer> {
           "dd-MM-yyyy"
         );
         installment.paid = false;
+        installment.invoice = invoice;
+
         payment.contact.hire_due += payment.paid_amount;
         payment.isReverted = true;
 
@@ -645,6 +658,10 @@ export class ContactController extends Controller<Customer> {
         }
         customer.is_hire_account_closed = true;
 
+        customer.hire_due = Math.max(
+          customer.hire_due - Number.parseInt(req.body.amount),
+          0
+        );
         const payment = this.createHirePayment(
           customer,
           req.body.amount,
@@ -660,6 +677,7 @@ export class ContactController extends Controller<Customer> {
           customer
         );
         await this.getRepository(PaymentOption).save(payment);
+        await this.repository.save(customer);
 
         this.success(res, payment);
       } catch (err) {
@@ -671,7 +689,7 @@ export class ContactController extends Controller<Customer> {
     }
   );
 
-  private createCashPayment(
+  private async createCashPayment(
     contact: Customer,
     amount: number,
     req: any,
@@ -680,6 +698,7 @@ export class ContactController extends Controller<Customer> {
   ) {
     contact.cash_due = contact.cash_due - amount || 0;
 
+    await this.repository.save(contact);
     const payment = new PaymentOption();
     payment.type = type;
     payment.amount = contact.cash_due;
@@ -703,14 +722,14 @@ export class ContactController extends Controller<Customer> {
     req: any,
     changeAmount: number,
     type: string,
-    invoice?: Invoice | undefined
+    invoice?: Invoice
   ) {
-    contact.hire_due = Math.max(
-      contact.hire_due - Number.parseInt(req.body?.amount),
-      0
-    );
-
     const payment = new PaymentOption();
+
+    if (invoice) {
+      invoice.due_amount = Math.max(invoice.due_amount - amount, 0);
+      payment.invoice = invoice;
+    }
     payment.type = type;
     payment.amount = contact.hire_due;
     payment.paid_amount = amount;

@@ -23,12 +23,12 @@ export class Invoice {
 
   @Column({ nullable: true })
   invoice_id: string;
-  
+
   @ManyToOne(() => Business)
   @JoinColumn()
   business: Business;
 
-  @Column({ default: 0,type:'double' })
+  @Column({ default: 0, type: "double" })
   interest_rate: number;
 
   @Column({ type: "double" })
@@ -71,14 +71,11 @@ export class Invoice {
   })
   contact: Customer;
 
-  @OneToOne(() => PaymentOption, {
-    eager: true,
-    cascade: true,
+  @OneToMany(() => PaymentOption, (p) => p.invoice, {
     onUpdate: "CASCADE",
-    onDelete: "CASCADE",
+    onDelete: "CASCADE"
   })
-  @JoinColumn()
-  payment: PaymentOption;
+  payments: PaymentOption[];
 
   @OneToMany(() => Cart, (c) => c.invoice, { eager: true })
   carts: Cart[];
@@ -94,4 +91,11 @@ export class Invoice {
 
   @UpdateDateColumn()
   updated_at: Date;
+
+  addPayment(payment: PaymentOption) {
+    if (this.payments == null) {
+      this.payments = new Array<PaymentOption>();
+    }
+    this.payments.push(payment);
+  }
 }

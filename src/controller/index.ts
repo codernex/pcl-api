@@ -19,3 +19,4 @@ export * from "./sales-return";
 export * from "./payments";
 export * from './savings-withdraw';
 export * from './income-others'
+export * from './income-type'

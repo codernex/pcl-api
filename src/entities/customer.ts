@@ -107,7 +107,7 @@ export class Customer extends BaseEntity {
   @Column({
     default: false,
   })
-  savingsCustomer: false;
+  savingsCustomer: boolean;
 
   @CreateDateColumn()
   created_at: Date;

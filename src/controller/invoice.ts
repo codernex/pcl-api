@@ -31,7 +31,6 @@ export class InvoiceController extends Controller<Invoice> {
         if (!req.user) {
           throw new Error("Unauthorized");
         }
-
         this.validateErr(
           req.body,
           "carts",
@@ -40,7 +39,6 @@ export class InvoiceController extends Controller<Invoice> {
           "customer_id",
           "salesType"
         );
-
         this.isValidEnum(PaymentMethod, req.body.payment_method);
         /**
          * Error Handling part done
@@ -65,13 +63,13 @@ export class InvoiceController extends Controller<Invoice> {
           discountAmount = Math.round(discountAmount);
         }
         const amount_after_discount = Math.round(
-          parseFloat((total_amount - discountAmount).toFixed(2))
+          Math.max(total_amount - discountAmount, 0)
         );
         const change_amount = Math.round(
-          parseFloat((paid_amount - amount_after_discount).toFixed(2))
+          Math.max(paid_amount - amount_after_discount, 0)
         );
         const due_amount = Math.round(
-          parseFloat((amount_after_discount - paid_amount).toFixed(2))
+          Math.max(amount_after_discount - paid_amount, 0)
         );
         const carts = req.body.carts;
 
@@ -89,33 +87,17 @@ export class InvoiceController extends Controller<Invoice> {
 
         // Searching for contact
         const contact = await this.getRepository(Customer)
-          .createQueryBuilder("c")
-          .where("c.id = :id", { id: req.body.customer_id })
-          .leftJoinAndSelect("c.seasonal", "seasonal")
-          .leftJoinAndSelect("c.installments", "i")
+          .createQueryBuilder()
+          .where("id = :id", { id: req.body.customer_id })
           .getOneOrFail();
 
         if (req.body.salesType === "HIRE" && contact.hire_due) {
           return this.failed("This customer has a hire due", next);
         }
 
-        if (req.body.salesType === "HIRE" && contact.installments.length) {
-          return this.failed(
-            "This customer has previous installments, please contact admin",
-            next
-          );
-        }
-
         if (req.body.salesType === "SEASONAL" && !contact.seasonal_approved) {
           return this.failed(
             "This customer is not approved for Seasonal Sales",
-            next
-          );
-        }
-
-        if (req.body.salesType === "SEASONAL" && contact.seasonal.length) {
-          return this.failed(
-            "This customer has previous seasonal sales, please contact admin",
             next
           );
         }
@@ -141,6 +123,28 @@ export class InvoiceController extends Controller<Invoice> {
           );
         }
 
+        if (
+          (req.body.salesType === "HIRE" ||
+            req.body.salesType === "SAVINGS_HIRE") &&
+          !req.body.installment_period
+        ) {
+          throw new ErrorHandler(
+            "Hire sales requires to have Installment period",
+            400
+          );
+        }
+
+        if (
+          req.body.salesType === "SEASONAL" &&
+          !req.body.seasonal_payment_period &&
+          !req.body.seasonal_due_date
+        ) {
+          throw new ErrorHandler(
+            "Seasonal sales requires to have due payment period and due date",
+            400
+          );
+        }
+
         // Creating payment
         const payment = this.createPayment(
           amount_after_discount,
@@ -151,7 +155,6 @@ export class InvoiceController extends Controller<Invoice> {
         );
 
         // Adding Contact Cash or Hire due
-
         if (req.body.salesType === "RETAIL") {
           if (due_amount > 0) {
             contact.cash_due += due_amount > 0 ? due_amount : 0;
@@ -181,7 +184,6 @@ export class InvoiceController extends Controller<Invoice> {
           totalQty,
           change_amount,
           amount_after_discount,
-          payment,
           due_amount
         );
 
@@ -213,18 +215,18 @@ export class InvoiceController extends Controller<Invoice> {
 
         // Creating cart for invoice
         await this.addToCarts(carts, invoice, cartsData);
+
+        // Updating balance
         await AccountController.updateBalance(
-          paid_amount - change_amount || 0,
+          Math.max(paid_amount - change_amount, 0),
           TransactionType.DEBIT,
-          req.body.salesType === "HIRE" ||
-            req.body.salesType === "SAVINGS_HIRE" ||
-            req.body.salesType === "SEASONAL"
-            ? "DOWN_PAYMENT"
-            : "SALES",
+          req.body.salesType === "RETAIL" ? "SALES" : "DOWN_PAYMENT",
           "Customer Sales",
           contact
         );
-        await this.repository.save(invoice);
+        payment.invoice = invoice;
+        await this.getRepository(PaymentOption).save(payment);
+        // await this.repository.save(invoice);
 
         this.success(
           res,
@@ -260,7 +262,7 @@ export class InvoiceController extends Controller<Invoice> {
           .createQueryBuilder("iv")
           .leftJoinAndSelect("iv.business", "b")
           .leftJoinAndSelect("iv.contact", "co")
-          .leftJoinAndSelect("iv.payment", "p")
+          .leftJoinAndSelect("iv.payments", "p")
           .leftJoinAndSelect("iv.carts", "cart")
           .leftJoinAndSelect("iv.installments", "i")
           .andWhere("b.id=:id", { id: req.user?.business.id });
@@ -372,7 +374,6 @@ export class InvoiceController extends Controller<Invoice> {
     totalQty: number,
     change_amount: number,
     amount_after_discount: number,
-    payment: PaymentOption,
     due_amount: number
   ): Invoice {
     const invoice = new Invoice();
@@ -380,7 +381,6 @@ export class InvoiceController extends Controller<Invoice> {
     invoice.business = req.user.business;
     invoice.total_amount = total_amount;
     invoice.paid_amount = paid_amount;
-    invoice.payment = payment;
     invoice.contact = contact;
     invoice.due_amount = due_amount > 0 ? due_amount : 0;
     invoice.change_amount = change_amount > 0 ? change_amount : 0;
