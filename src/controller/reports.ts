@@ -1,6 +1,6 @@
 import { NextFunction, Response } from "express";
 import { EntityTarget, ObjectLiteral } from "typeorm";
-import { Customer } from "../entities";
+import { Customer, Product } from "../entities";
 import { appDataSource } from "../orm.config";
 import { APIResponse } from "../types";
 import { ApiError, requestHandler } from "../utils";
@@ -35,16 +35,8 @@ export class ReportController {
       const qb = this.getRepository(Customer)
         .createQueryBuilder("customer")
         .leftJoinAndSelect("customer.invoices", "invoices")
-        .select([
-          "customer.id",
-          "customer.name",
-          "customer.hire_due",
-          "customer.mobile",
-          "customer.account_number",
-          "customer.present_address",
-          "customer.permanent_address",
-          "invoices.invoice_id",
-        ])
+        .leftJoinAndSelect("customer.payment_option", "payments")
+        .leftJoinAndSelect("customer.installments", "installments")
         .andWhere("customer.hire_due > 0")
         .andWhere("customer.approved = true")
         .andWhere("customer.is_hire_account_closed = false")
@@ -63,16 +55,8 @@ export class ReportController {
       const qb = this.getRepository(Customer)
         .createQueryBuilder("customer")
         .leftJoinAndSelect("customer.invoices", "invoices")
-        .select([
-          "customer.id",
-          "customer.name",
-          "customer.hire_due",
-          "customer.mobile",
-          "customer.account_number",
-          "customer.present_address",
-          "customer.permanent_address",
-          "invoices.invoice_id",
-        ])
+        .leftJoinAndSelect("customer.payment_option", "payments")
+        .leftJoinAndSelect("customer.installments", "installments")
         .andWhere("customer.hire_due > 0")
         .andWhere("customer.is_hire_account_closed = false")
         .andWhere("customer.savingsCustomer = true")
@@ -91,16 +75,8 @@ export class ReportController {
       const qb = this.getRepository(Customer)
         .createQueryBuilder("customer")
         .leftJoinAndSelect("customer.invoices", "invoices")
-        .select([
-          "customer.id",
-          "customer.name",
-          "customer.hire_due",
-          "customer.mobile",
-          "customer.account_number",
-          "customer.present_address",
-          "customer.permanent_address",
-          "invoices.invoice_id",
-        ])
+        .leftJoinAndSelect("customer.payment_option", "payments")
+        .leftJoinAndSelect("customer.seasonal", "seasonal")
         .andWhere("customer.hire_due > 0")
         .andWhere("customer.is_hire_account_closed = false")
         .andWhere("customer.savingsCustomer = false")
@@ -113,6 +89,53 @@ export class ReportController {
       return this.failed(error, next);
     }
   });
+
+  getStockReport = requestHandler(
+    async (req, res, next) => {
+      try {
+        const qb = this.getRepository(Product)
+          .createQueryBuilder("p")
+          .leftJoinAndSelect("p.model", "m")
+          .leftJoinAndSelect("p.brand", "b")
+          .leftJoinAndSelect("p.category", "c");
+
+        if (req.query.model) {
+          qb.andWhere("m.name = :model", { model: req.query.model });
+        }
+
+        const productData = await qb.getMany();
+        const groupedProduct = new Map<string, Product>();
+
+        productData.forEach((product) => {
+          const key =
+            product.name +
+            "_" +
+            product.category.name +
+            "_" +
+            product.brand.name +
+            "_" +
+            product.model.name;
+
+          const existingProduct = groupedProduct.get(key);
+
+          if (existingProduct) {
+            existingProduct.quantity += product.quantity;
+            existingProduct.sku_id =
+              existingProduct.sku_id + "," + product.sku_id;
+            groupedProduct.set(key, existingProduct);
+          } else {
+            groupedProduct.set(key, product);
+          }
+        });
+        return this.success(res, Array.from(groupedProduct.values()));
+      } catch (error) {
+        return this.failed(error, next);
+      }
+    },
+    {
+      query: {} as any,
+    }
+  );
 
   /**
    * Controller Specific Database Methods

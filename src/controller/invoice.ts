@@ -145,6 +145,9 @@ export class InvoiceController extends Controller<Invoice> {
           );
         }
 
+        contact.installment_period =
+          parseInt(req.body?.installment_period?.toString()) || 0;
+
         // Creating payment
         const payment = this.createPayment(
           amount_after_discount,

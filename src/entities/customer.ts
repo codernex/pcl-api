@@ -83,6 +83,9 @@ export class Customer extends BaseEntity {
   @Column({ nullable: true, default: false })
   approved: boolean;
 
+  @Column({ default: 0 })
+  installment_period: number;
+
   @Column({ default: false })
   seasonal_approved: boolean;
 
