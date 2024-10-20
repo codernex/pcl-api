@@ -13,7 +13,7 @@ export class SavingsWithdraw {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({type:"bigint"})
   amount: number;
 
   @ManyToOne(() => Customer, {

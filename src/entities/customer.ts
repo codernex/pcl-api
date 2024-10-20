@@ -8,11 +8,8 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 import { Granter } from "./granter";
-import { Installments } from "./installment";
-import { Invoice } from "./invoice";
 import { PaymentOption } from "./paymentoption";
 import { SavingDeposit } from "./saving-deposit";
-import { Seasonal } from "./seasonal";
 
 @Entity()
 export class Customer extends BaseEntity {
@@ -25,32 +22,44 @@ export class Customer extends BaseEntity {
   @Column()
   name: string;
 
+  @Column()
+  company_name: string;
+
+  @Column({ unique: true, nullable: true })
+  email: string;
+
+  @Column({ unique: true })
+  mobile: string;
+
+  @Column()
+  designation: string;
+
+  @Column({ nullable: true })
+  alternative_name: string;
+
+  @Column({ nullable: true })
+  alternative_mobile: string;
+
+  @Column({ default: 0, type: "bigint" })
+  opening_balance: number;
+
+  @Column({ default: 0, type: "bigint" })
+  credit_limit: number;
+
+  @Column({ nullable: true })
+  address: string;
+
   @Column({ nullable: true })
   husband_or_parent_name: string;
 
-  @Column({ default: 0 })
+  @Column({ default: 0, type: "bigint" })
   savings: number;
 
   @Column({ default: false })
   is_hire_account_closed: boolean;
 
-  @Column()
-  mobile: string;
-
-  @Column({ nullable: true })
-  email: string;
-
-  @Column({ nullable: true, default: 0 })
-  cash_due: number;
-
-  @Column({ nullable: true, default: 0 })
-  hire_due: number;
-
-  @Column({ nullable: true })
-  present_address: string;
-
-  @Column({ nullable: true })
-  permanent_address: string;
+  @Column({ nullable: true, default: 0, type: "bigint" })
+  due: number;
 
   @Column({ nullable: true })
   religion: string;
@@ -66,10 +75,6 @@ export class Customer extends BaseEntity {
 
   @OneToMany(() => PaymentOption, (p) => p.contact)
   payment_option: PaymentOption[];
-
-  @OneToMany(() => Invoice, (iv) => iv.contact)
-  invoices: Invoice[];
-
   @OneToMany(() => Granter, (g) => g.customer, {
     onDelete: "RESTRICT",
     onUpdate: "CASCADE",
@@ -88,18 +93,6 @@ export class Customer extends BaseEntity {
 
   @Column({ default: false })
   seasonal_approved: boolean;
-
-  @OneToMany(() => Installments, (installments) => installments.customer, {
-    onUpdate: "CASCADE",
-    onDelete: "RESTRICT",
-  })
-  installments: Installments[];
-
-  @OneToMany(() => Seasonal, (s) => s.customer, {
-    onUpdate: "CASCADE",
-    onDelete: "RESTRICT",
-  })
-  seasonal: Seasonal[];
 
   @OneToMany(() => SavingDeposit, (savingDeposit) => savingDeposit.customer, {
     onUpdate: "CASCADE",

@@ -1,8 +1,8 @@
 import {
   Account,
   AccountHistory,
-  AccountState,
   AccountType,
+  AmountTransfer,
   Customer,
   TransactionType,
 } from "../entities";
@@ -17,19 +17,17 @@ export class AccountController extends Controller<Account> {
   create = requestHandler(
     async (req, res, next) => {
       try {
-        this.validateErr(req.body, "accountType");
+        this.validateErr(req.body, "accountType", "accountName");
         this.isValidEnum(AccountType, req.body.accountType as AccountType);
 
         const isExist = await this.repository.findOne({
           where: {
-            accountName: "Cash Book",
+            accountName: req.body.accountName,
+            accountType: req.body.accountType,
           },
         });
         if (isExist) {
-          return this.failed(
-            "Cash Book is Reserved, Please use other name",
-            next
-          );
+          return this.failed("Account name & type already exist", next);
         }
 
         const account = new Account();
@@ -69,11 +67,13 @@ export class AccountController extends Controller<Account> {
   getAccountHistory = requestHandler(
     async (req, res, next) => {
       try {
+        this.validateErr(req.params, "accountId");
         const qb = this.getRepository(AccountHistory)
           .createQueryBuilder("ah")
           .leftJoinAndSelect("ah.account", "a")
           .leftJoinAndSelect("ah.customer", "c")
-          .andWhere("a.accountName = 'Cash Book'");
+          .andWhere(`a.id = ${req.params.accountId}`);
+
         if (req.query.startDate && req.query.endDate) {
           const isValid = isDateValid(req.query.startDate, req.query.endDate);
           if (!isValid) {
@@ -84,7 +84,8 @@ export class AccountController extends Controller<Account> {
             endDate: req.query.endDate,
           });
         }
-        const account = await qb.orderBy("ah.id", "DESC").getMany();
+        const account = await qb.orderBy("ah.createdAt", "DESC").getMany();
+
         return this.success(res, account);
       } catch (err) {
         return this.failed(err, next);
@@ -92,30 +93,84 @@ export class AccountController extends Controller<Account> {
     },
     {
       query: {} as any,
+      params: {} as { accountId: number },
     }
   );
 
-  updateCashRegister = requestHandler(
+  transferAmount = requestHandler(
     async (req, res, next) => {
-      try {
-        this.validateErr(req.body, "accountState");
-        this.isValidEnum(AccountState, req.body.accountState as AccountState);
-        const account = await AccountController.currentAccount();
-        Object.assign(account, req.body);
-        await this.repository.save(account);
-        return this.success(res, account);
-      } catch (err) {
-        return this.failed(err, next);
+      this.validateErr(req.body, "senderAccount", "receiverAccount", "amount");
+      const cost = parseInt(req.body.cost) || 0;
+      const amount = parseInt(req.body.amount) || 0;
+
+      if (req.body.senderAccount === req.body.receiverAccount) {
+        return this.failed("Sender and Receiver account can not be same", next);
       }
+      const sender = await AccountController.currentAccount(
+        req.body.senderAccount
+      );
+      const receiver = await AccountController.currentAccount(
+        req.body.receiverAccount
+      );
+
+      const transfer = new AmountTransfer();
+
+      transfer.sender = sender;
+      transfer.reciever = receiver;
+      transfer.amount = amount;
+      transfer.cost = cost;
+
+      await AccountController.updateBalance(
+        amount + cost,
+        req.body.senderAccount,
+        TransactionType.DEBIT,
+        "Balance Transfer",
+        "Transfer amount from this account"
+      );
+
+      await AccountController.updateBalance(
+        amount,
+        req.body.receiverAccount,
+        TransactionType.CREDIT,
+        "Balance Transfer",
+        "Received amount to this account"
+      );
+
+      await this.getRepository(AmountTransfer).save(transfer);
+
+      return this.success(res, transfer, 201);
     },
     {
-      body: {} as any,
+      body: {} as {
+        senderAccount: number;
+        receiverAccount: number;
+        amount: string;
+        cost: string;
+      },
     }
   );
-  static async currentAccount(): Promise<Account> {
+
+  getTransferHisoty = requestHandler(async (req, res, next) => {
+    try {
+      const transfer = await this.getRepository(AmountTransfer)
+        .createQueryBuilder("at")
+        .leftJoinAndSelect("at.sender", "s")
+        .leftJoinAndSelect("at.reciever", "r")
+        .orderBy("at.id", "DESC")
+        .getMany();
+      return this.success(res, transfer);
+    } catch (error) {
+      return this.failed(error, next);
+    }
+  });
+
+  static async currentAccount(accountId: number): Promise<Account> {
     const account = await appDataSource.getRepository(Account).findOne({
       where: {
-        accountName: "Cash Book",
+        id: accountId,
+      },
+      relations: {
+        accountHistory: true,
       },
     });
 
@@ -127,6 +182,7 @@ export class AccountController extends Controller<Account> {
 
   static async updateBalance(
     amount: number,
+    accountId: number,
     type: TransactionType,
     remarkType?: string,
     remark?: string,
@@ -141,13 +197,16 @@ export class AccountController extends Controller<Account> {
     )
       return;
 
-    const account = await AccountController.currentAccount();
+    const account = await AccountController.currentAccount(accountId);
 
-    if (type === "DEBIT") {
+    if (type === "CREDIT") {
       account.balance = Math.round(
         parseInt(account.balance) + parseInt(amount?.toString())
       ).toString();
     } else {
+      if (parseInt(account.balance) < parseInt(amount?.toString())) {
+        throw new ErrorHandler("Insufficient Balance", 404);
+      }
       account.balance = Math.round(
         parseInt(account.balance) - parseInt(amount?.toString())
       ).toString();

@@ -82,6 +82,7 @@ export class SupplierController extends Controller<Supplier> {
 
         await AccountController.updateBalance(
           amount,
+          req.body.accountId,
           TransactionType.CREDIT,
           "PURCHASE_DUE",
           "Supplier Due Payment"

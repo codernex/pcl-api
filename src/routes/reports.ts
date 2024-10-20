@@ -1,17 +1,7 @@
 import { Router } from "express";
-import { ReportController } from "../controller/reports";
+import { ReportController } from "../controller";
 
 export const reportRoutes = Router();
-const {
-  getRetailDueList,
-  getHireDueList,
-  getSavingsHireDueList,
-  getSeasonalHireDueList,
-  getStockReport
-} = new ReportController();
+const { getCashFlow } = new ReportController();
 
-reportRoutes.get("/retail-due", getRetailDueList);
-reportRoutes.get("/hire-due", getHireDueList);
-reportRoutes.get("/savings-hire-due", getSavingsHireDueList);
-reportRoutes.get("/seasonal-hire-due", getSeasonalHireDueList);
-reportRoutes.get('/stock-report',getStockReport)
+reportRoutes.route("/cash-flow").get(getCashFlow);

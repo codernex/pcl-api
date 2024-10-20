@@ -2,18 +2,20 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
 import { Customer } from "./customer";
+import { Account } from "./account";
 
 @Entity("saving_deposits")
 export class SavingDeposit {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({type:"bigint"})
   amount: number;
 
   @ManyToOne(() => Customer, (customer) => customer.savingDeposit, {
@@ -23,6 +25,9 @@ export class SavingDeposit {
     eager: true,
   })
   customer: Customer;
+
+  @Column({ default: 0, type: "bigint" })
+  cost: number;
 
   @CreateDateColumn()
   created_at: Date;

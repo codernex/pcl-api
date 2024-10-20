@@ -36,7 +36,7 @@ export class AccountHistory {
   @JoinColumn()
   customer: Customer;
 
-  @Column({ type: "double" })
+  @Column({ type: "bigint" })
   amount: number;
 
   @Column({ nullable: true })

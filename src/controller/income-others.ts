@@ -11,7 +11,7 @@ export class IncomeController extends Controller<Income> {
   create = requestHandler(
     async (req, res, next) => {
       try {
-        this.validateErr(req.body, "amount", "incomeTypeId");
+        this.validateErr(req.body, "amount", "incomeTypeId", "accountId");
 
         const incomeType = await this.getRepository(IncomeType).findOne({
           where: {
@@ -22,16 +22,23 @@ export class IncomeController extends Controller<Income> {
         if (!incomeType) {
           return this.failed("Income Type not found", next);
         }
+        const cost = parseInt(req.body.cost) || 0;
 
         const income = new Income();
         income.amount = parseInt(req.body.amount);
         income.incomeType = incomeType;
+        income.cost = cost;
 
         await AccountController.updateBalance(
-          income.amount,
-          TransactionType.DEBIT,
+          income.amount - cost,
+          req.body.accountId,
+          TransactionType.CREDIT,
           incomeType.type,
-          incomeType.remark
+          req.body.remark
+            ? req.body.remark
+            : incomeType.remark
+              ? incomeType.remark
+              : ""
         );
 
         await this.getRepository(Income).save(income);
@@ -47,11 +54,17 @@ export class IncomeController extends Controller<Income> {
 
   get = requestHandler(async (req, res, next) => {
     try {
-      const income= await this.repository.createQueryBuilder("income")
-      .leftJoinAndSelect("income.incomeType", "incomeType")
-      .select(["income.id", "income.amount", "incomeType.type", "incomeType.remark"])
-      .orderBy("income.id", "DESC")
-      .getMany()
+      const income = await this.repository
+        .createQueryBuilder("income")
+        .leftJoinAndSelect("income.incomeType", "incomeType")
+        .select([
+          "income.id",
+          "income.amount",
+          "incomeType.type",
+          "incomeType.remark",
+        ])
+        .orderBy("income.id", "DESC")
+        .getMany();
       return this.success(res, income);
     } catch (error) {
       return this.failed(error, next);

@@ -1,5 +1,4 @@
 import {BaseEntity, Column, Entity, ManyToOne, PrimaryGeneratedColumn} from "typeorm";
-import {Product} from "./product";
 
 @Entity()
 export class Image extends BaseEntity {
@@ -23,11 +22,5 @@ export class Image extends BaseEntity {
 
   @Column({ nullable: true, type: "int" })
   size: number;
-
-  @ManyToOne(() => Product, (product) => product.images,{
-    onDelete:"CASCADE",
-    onUpdate:"CASCADE"
-  })
-  product: Product;
 
 }

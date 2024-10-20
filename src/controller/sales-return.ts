@@ -1,171 +1,43 @@
-import { In } from "typeorm";
-import {
-  Cart,
-  Installments,
-  Invoice,
-  Product,
-  SalesReturn,
-  TransactionType,
-} from "../entities";
-import { ErrorHandler, isDateValid, requestHandler } from "../utils";
-import { Controller } from "./base";
-import { AccountController } from "./account";
-import { Seasonal } from "../entities/seasonal";
+// import {
+//   SalesReturn
+// } from "../entities";
+// import { ErrorHandler, isDateValid, requestHandler } from "../utils";
+// import { Controller } from "./base";
 
-export class SalesReturnController extends Controller<SalesReturn> {
-  constructor() {
-    super(SalesReturn);
-  }
+// export class SalesReturnController extends Controller<SalesReturn> {
+//   constructor() {
+//     super(SalesReturn);
+//   }
 
-  createSalesReturn = requestHandler(
-    async (req, res, next) => {
-      try {
-        this.validateErr(req.body, "invoiceId");
-        const salesReturn = new SalesReturn();
 
-        const products = await this.getRepository(Product).find({
-          where: {
-            sku_id: In(req.body.products.map((p) => p.sku_id)),
-          },
-        });
+//   getSalesReturn = requestHandler(
+//     async (req, res, next) => {
+//       try {
+//         const qb = this.repository
+//           .createQueryBuilder("s")
+//           .leftJoinAndSelect("s.invoice", "i")
+//           .leftJoinAndSelect("s.customer", "c")
+//           .leftJoinAndSelect("s.products", "p");
+//         if (req.query.startDate && req.query.endDate) {
+//           const isValid = isDateValid(req.query.startDate, req.query.endDate);
 
-        const invoice = await this.getRepository(Invoice).findOne({
-          where: {
-            id: req.body.invoiceId,
-          },
-          relations: {
-            contact: true,
-            seasonals: true,
-            installments: true,
-          },
-        });
+//           if (!isValid) {
+//             throw new ErrorHandler("Invalid Date", 404);
+//           }
 
-        if (!invoice) {
-          return this.failed("Invoice not found", next);
-        }
-
-        if (!products.length) {
-          return this.failed("Product not found", next);
-        }
-
-        for (const product of products) {
-          const bodyProduct = req.body.products.find(
-            (p) => p.sku_id === product.sku_id
-          );
-
-          const salesCart = await this.getRepository(Cart).findOne({
-            where: {
-              invoice: {
-                id: invoice.id,
-              },
-            },
-          });
-
-          if (!salesCart) {
-            return this.failed("Product not found", next);
-          }
-          if (salesCart.isReturned) {
-            return this.failed("Product already returned", next);
-          }
-          if (!bodyProduct) {
-            return this.failed("Product not found", next);
-          }
-          if (bodyProduct.return_qty > salesCart.quantity) {
-            return this.failed("Quantity not available to return", next);
-          }
-          product.is_returned = true;
-          product.quantity += bodyProduct?.return_qty;
-          salesReturn.addProduct(product);
-          salesCart.isReturned = true;
-          await this.getRepository(Cart).save(salesCart);
-        }
-        if (invoice.sales_type === "HIRE" && invoice.due_amount) {
-          invoice.contact.hire_due = Math.max(
-            invoice.contact.hire_due - req.body.returnAmount,
-            0
-          );
-          await this.getRepository(Installments).delete({
-            id: In(invoice.installments.map((i) => i.id)),
-            paid: false,
-          });
-        } else if (invoice.sales_type === "SEASONAL" && invoice.due_amount) {
-          await this.getRepository(Seasonal).delete({
-            id: In(invoice.seasonals.map((i) => i.id)),
-            paid: false,
-          });
-          invoice.contact.hire_due = Math.max(
-            invoice.contact.hire_due - req.body.returnAmount,
-            0
-          );
-        } else {
-          invoice.contact.cash_due = Math.max(
-            invoice.contact.cash_due - req.body.returnAmount,
-            0
-          );
-        }
-        salesReturn.amount = req.body.returnAmount;
-        salesReturn.invoice = invoice;
-        salesReturn.customer = invoice.contact;
-        await AccountController.updateBalance(
-          salesReturn.amount,
-          TransactionType.CREDIT,
-          "SALES_RETURN",
-          "Sales Return amount to customer",
-          invoice.contact
-        );
-
-        await this.repository.save(salesReturn);
-
-        this.success(res, salesReturn);
-      } catch (error) {
-        return this.failed(error, next);
-      }
-    },
-    {
-      body: {
-        products: [],
-        invoiceId: 0,
-        returnAmount: 0,
-      } as {
-        products: {
-          sku_id: string;
-          quantity: number;
-          return_qty: number;
-        }[];
-        invoiceId: number;
-        returnAmount: number;
-      },
-    }
-  );
-
-  getSalesReturn = requestHandler(
-    async (req, res, next) => {
-      try {
-        const qb = this.repository
-          .createQueryBuilder("s")
-          .leftJoinAndSelect("s.invoice", "i")
-          .leftJoinAndSelect("s.customer", "c")
-          .leftJoinAndSelect("s.products", "p");
-        if (req.query.startDate && req.query.endDate) {
-          const isValid = isDateValid(req.query.startDate, req.query.endDate);
-
-          if (!isValid) {
-            throw new ErrorHandler("Invalid Date", 404);
-          }
-
-          qb.andWhere(`DATE(s.created_at) BETWEEN :startDate AND :endDate`, {
-            startDate: req.query.startDate,
-            endDate: req.query.endDate,
-          });
-        }
-        const salesReturn = await qb.orderBy("s.id", "DESC").getMany();
-        this.success(res, salesReturn);
-      } catch (error) {
-        return this.failed(error, next);
-      }
-    },
-    {
-      query: {} as any,
-    }
-  );
-}
+//           qb.andWhere(`DATE(s.created_at) BETWEEN :startDate AND :endDate`, {
+//             startDate: req.query.startDate,
+//             endDate: req.query.endDate,
+//           });
+//         }
+//         const salesReturn = await qb.orderBy("s.id", "DESC").getMany();
+//         this.success(res, salesReturn);
+//       } catch (error) {
+//         return this.failed(error, next);
+//       }
+//     },
+//     {
+//       query: {} as any,
+//     }
+//   );
+// }

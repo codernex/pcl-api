@@ -13,7 +13,7 @@ export class Income {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: "bigint" })
   amount: number;
 
   @ManyToOne(() => IncomeType, {
@@ -22,6 +22,9 @@ export class Income {
   })
   @JoinColumn()
   incomeType: IncomeType;
+
+  @Column({ default: 0 })
+  cost: number;
 
   @CreateDateColumn()
   created_at: Date;

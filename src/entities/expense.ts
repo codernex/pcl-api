@@ -17,7 +17,7 @@ export class Expense {
   @Column()
   expenseName: string;
 
-  @Column()
+  @Column({ type: "bigint" })
   amount: number;
 
   @ManyToOne(() => ExpenseType, (et) => et.expenses, {

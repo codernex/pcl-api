@@ -50,7 +50,7 @@ export class SavingsWithdrawController extends Controller<SavingsWithdraw> {
   create = requestHandler(
     async (req, res, next) => {
       try {
-        this.validateErr(req.body, "amount", "customerId");
+        this.validateErr(req.body, "amount", "customerId", "accountId");
 
         const customer = await this.getRepository(Customer).findOne({
           where: {
@@ -76,7 +76,8 @@ export class SavingsWithdrawController extends Controller<SavingsWithdraw> {
 
         await AccountController.updateBalance(
           savingsWithdraw.amount,
-          TransactionType.CREDIT,
+          req.body.accountId,
+          TransactionType.DEBIT,
           "Savings Withdraw",
           "Savings withdraw from savings account",
           customer

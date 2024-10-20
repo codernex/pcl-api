@@ -195,7 +195,7 @@ export const generateRandomNumber = (length: number) => {
 };
 
 export const amountWithInterest = (amount: number, interest: number) => {
-  return amount + (amount / 100) * interest ?? 0;
+  return amount + (amount / 100) * interest || 0;
 };
 
 export function monthDifference(date1: Date, date2: Date): number {

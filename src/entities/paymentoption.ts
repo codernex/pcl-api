@@ -8,7 +8,6 @@ import {
 } from "typeorm";
 import { Customer } from "./customer";
 import { Supplier } from "./supplier";
-import { Invoice } from "./invoice";
 export enum PaymentMethod {
   CASH = "CASH",
 }
@@ -43,12 +42,6 @@ export class PaymentOption {
 
   @Column({ nullable: true, type: "enum", enum: PaymentMethod })
   payment_method: PaymentMethod;
-
-  @ManyToOne(() => Invoice, (iv) => iv.payments, {
-    cascade: true,
-    onUpdate: "CASCADE",
-  })
-  invoice: Invoice;
 
   @Column({
     nullable: true,

@@ -14,7 +14,7 @@ export class IncomeType {
   @Column({ unique: true })
   type: string;
 
-  @Column()
+  @Column({ nullable: true })
   remark: string;
 
   @CreateDateColumn()

@@ -1,5 +1,4 @@
 import { Role } from "../entities";
-import { permissions } from "../middleware/isAuth";
 import { ApiError, requestHandler } from "../utils";
 import { Controller } from "./base";
 

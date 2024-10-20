@@ -7,30 +7,17 @@ import { isAuthenticated } from "./middleware/isAuth";
 import { appDataSource } from "./orm.config";
 import {
   accountRoutes,
-  brandRoutes,
   businessRoutes,
-  categoryRoutes,
   customerRoutes,
   expenseRoutes,
   expenseTypeRoutes,
   incomeRoutes,
-  invoiceRoutes,
-  modelRoutes,
-  paperRoutes,
   paymentRoutes,
-  productGroupRoutes,
-  productRoutes,
-  purchaseRoutes,
-  salesReturnRoutes,
   savingsWithdrawRoutes,
-  stockTransferRoutes,
   supplierRoutes,
-  unitRoutes,
   userRoutes,
-  warehouseRoutes,
 } from "./routes";
 import { roleRoutes } from "./routes/role";
-import { installmentRoutes } from "./routes/installment";
 import { depositRoutes } from "./routes/deposit";
 import { incomeTypeRoutes } from "./routes/income-type";
 import { reportRoutes } from "./routes/reports";
@@ -49,26 +36,13 @@ const mount = async (app: Application) => {
   app.use("/uploads", express.static(uploadFolderPath));
   app.use("/api/v1/users", userRoutes);
   app.use("/api/v1/contacts", isAuthenticated, customerRoutes);
-  app.use("/api/v1/products", isAuthenticated, productRoutes);
-  app.use("/api/v1/units", isAuthenticated, unitRoutes);
-  app.use("/api/v1/categories", isAuthenticated, categoryRoutes);
-  app.use("/api/v1/models", isAuthenticated, modelRoutes);
-  app.use("/api/v1/product-groups", isAuthenticated, productGroupRoutes);
-  app.use("/api/v1/brands", isAuthenticated, brandRoutes);
   app.use("/api/v1/business", isAuthenticated, businessRoutes);
-  app.use("/api/v1/purchase", isAuthenticated, purchaseRoutes);
-  app.use("/api/v1/invoices", isAuthenticated, invoiceRoutes);
-  app.use("/api/v1/paper", isAuthenticated, paperRoutes);
   app.use("/api/v1/roles", isAuthenticated, roleRoutes);
-  app.use("/api/v1/warehouse", isAuthenticated, warehouseRoutes);
-  app.use("/api/v1/stock-transfer", isAuthenticated, stockTransferRoutes);
   app.use("/api/v1/supplier", isAuthenticated, supplierRoutes);
   app.use("/api/v1/accounts", isAuthenticated, accountRoutes);
   app.use("/api/v1/expense", isAuthenticated, expenseRoutes);
   app.use("/api/v1/expense-types", isAuthenticated, expenseTypeRoutes);
-  app.use("/api/v1/sales-return", isAuthenticated, salesReturnRoutes);
   app.use("/api/v1/payments", isAuthenticated, paymentRoutes);
-  app.use("/api/v1/installments", isAuthenticated, installmentRoutes);
   app.use("/api/v1/saving-deposits", isAuthenticated, depositRoutes);
   app.use("/api/v1/income-type", isAuthenticated, incomeTypeRoutes);
   app.use("/api/v1/income", isAuthenticated, incomeRoutes);

@@ -1,116 +1,116 @@
-import { Category, Image } from "../entities";
-import { ApiError, deleteFile, requestHandler } from "../utils";
-import { Controller } from "./base";
+// import { Category, Image } from "../entities";
+// import { ApiError, deleteFile, requestHandler } from "../utils";
+// import { Controller } from "./base";
 
-export class CategoryController extends Controller<Category> {
-  constructor() {
-    super(Category);
-  }
+// export class CategoryController extends Controller<Category> {
+//   constructor() {
+//     super(Category);
+//   }
 
-  createCategory = requestHandler(
-    async (req, res, next) => {
-      try {
-        let categoryImage: Image | null = null;
+//   createCategory = requestHandler(
+//     async (req, res, next) => {
+//       try {
+//         let categoryImage: Image | null = null;
 
-        this.validateErr(req.body, "name", "isActive", "productGroup");
-        if (req.file) {
-          categoryImage = await this.getRepository(Image).save({
-            ...req.file,
-          });
-        }
+//         this.validateErr(req.body, "name", "isActive", "productGroup");
+//         if (req.file) {
+//           categoryImage = await this.getRepository(Image).save({
+//             ...req.file,
+//           });
+//         }
 
-        const category = await this.repository.save({
-          ...req.body,
-          isActive: req.body.isActive.toString() === "true",
-          image: categoryImage,
-        });
+//         const category = await this.repository.save({
+//           ...req.body,
+//           isActive: req.body.isActive.toString() === "true",
+//           image: categoryImage,
+//         });
 
-        return this.success(res, category, 201);
-      } catch (err) {
-        return ApiError(err.message, 404, next);
-      }
-    },
-    {
-      body: {} as any,
-    }
-  );
+//         return this.success(res, category, 201);
+//       } catch (err) {
+//         return ApiError(err.message, 404, next);
+//       }
+//     },
+//     {
+//       body: {} as any,
+//     }
+//   );
 
-  updateCategory = requestHandler(
-    async (req, res, next) => {
-      try {
-        const category = await this.repository.findOneOrFail({
-          where: {
-            id: req.params.id,
-          },
-        });
+//   updateCategory = requestHandler(
+//     async (req, res, next) => {
+//       try {
+//         const category = await this.repository.findOneOrFail({
+//           where: {
+//             id: req.params.id,
+//           },
+//         });
 
-        let image: Image | null;
+//         let image: Image | null;
 
-        if (req.file && category.image) {
-          await deleteFile(category.image.path);
-          image = new Image();
-          Object.assign(image, req.file);
-        } else {
-          image = category.image;
-        }
+//         if (req.file && category.image) {
+//           await deleteFile(category.image.path);
+//           image = new Image();
+//           Object.assign(image, req.file);
+//         } else {
+//           image = category.image;
+//         }
 
-        Object.assign(category, { ...req.body, image });
+//         Object.assign(category, { ...req.body, image });
 
-        await this.repository.save(category);
+//         await this.repository.save(category);
 
-        return this.success(res, category);
-      } catch (error) {
-        return ApiError(error, 404, next);
-      }
-    },
-    {
-      params: { id: String.toString() },
-      body: {} as any,
-    }
-  );
+//         return this.success(res, category);
+//       } catch (error) {
+//         return ApiError(error, 404, next);
+//       }
+//     },
+//     {
+//       params: { id: String.toString() },
+//       body: {} as any,
+//     }
+//   );
 
-  getCategories = requestHandler(
-    async (req, res, next) => {
-      try {
-        const category = await this.repository.find({
-          relations: {
-            image: true,
-            brand: true,
-          },
-        });
+//   getCategories = requestHandler(
+//     async (req, res, next) => {
+//       try {
+//         const category = await this.repository.find({
+//           relations: {
+//             image: true,
+//             brand: true,
+//           },
+//         });
 
-        return this.success(res, category);
-      } catch (err) {
-        return ApiError(err.message, 404, next);
-      }
-    },
-    {
-      body: {} as any,
-    }
-  );
+//         return this.success(res, category);
+//       } catch (err) {
+//         return ApiError(err.message, 404, next);
+//       }
+//     },
+//     {
+//       body: {} as any,
+//     }
+//   );
 
-  removeCategory = requestHandler(
-    async (req, res, next) => {
-      try {
-        const category = await this.repository.findOneOrFail({
-          where: {
-            id: req.params.id,
-          },
-        });
+//   removeCategory = requestHandler(
+//     async (req, res, next) => {
+//       try {
+//         const category = await this.repository.findOneOrFail({
+//           where: {
+//             id: req.params.id,
+//           },
+//         });
 
-        if (category.image) {
-          await deleteFile(category.image.path);
+//         if (category.image) {
+//           await deleteFile(category.image.path);
 
-          await this.getRepository(Image).remove(category.image);
-        }
-        await this.repository.remove(category);
-        this.success(res, null, 200, "Category deleted successfully");
-      } catch (error) {
-        return ApiError(error, 404, next);
-      }
-    },
-    {
-      params: {} as any,
-    }
-  );
-}
+//           await this.getRepository(Image).remove(category.image);
+//         }
+//         await this.repository.remove(category);
+//         this.success(res, null, 200, "Category deleted successfully");
+//       } catch (error) {
+//         return ApiError(error, 404, next);
+//       }
+//     },
+//     {
+//       params: {} as any,
+//     }
+//   );
+// }

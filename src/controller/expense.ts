@@ -1,8 +1,4 @@
-import {
-  Expense,
-  ExpenseType,
-  TransactionType
-} from "../entities";
+import { Expense, ExpenseType, TransactionType } from "../entities";
 import { ErrorHandler, requestHandler } from "../utils";
 import { AccountController } from "./account";
 import { Controller } from "./base";
@@ -15,7 +11,13 @@ export class ExpenseController extends Controller<Expense> {
   create = requestHandler(
     async (req, res, next) => {
       try {
-        this.validateErr(req.body, "amount", "expenseTypeId", "expenseName");
+        this.validateErr(
+          req.body,
+          "amount",
+          "expenseTypeId",
+          "expenseName",
+          "accountId"
+        );
 
         const expenseType = await this.getRepository(ExpenseType).findOne({
           where: {
@@ -33,7 +35,8 @@ export class ExpenseController extends Controller<Expense> {
 
         await AccountController.updateBalance(
           expense.amount,
-          TransactionType.CREDIT,
+          req.body.accountId,
+          TransactionType.DEBIT,
           expense.expenseType.type,
           expense.expenseName
         );
@@ -46,6 +49,7 @@ export class ExpenseController extends Controller<Expense> {
     {
       body: {} as Expense & {
         expenseTypeId: string;
+        accountId: number;
       },
     }
   );
