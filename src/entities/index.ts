@@ -16,3 +16,5 @@ export * from "./income-type";
 export * from "./income-others";
 export * from "./savings-withdraw";
 export * from "./amountTransfer";
+export * from "./product";
+export * from "./port";

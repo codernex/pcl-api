@@ -30,6 +30,10 @@ export class ExpenseController extends Controller<Expense> {
         }
 
         const expense = new Expense();
+
+        if (req.file) {
+          expense.attachment = req.file.filename;
+        }
         Object.assign(expense, req.body);
         expense.expenseType = expenseType;
 

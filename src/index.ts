@@ -13,6 +13,8 @@ import {
   expenseTypeRoutes,
   incomeRoutes,
   paymentRoutes,
+  portRoutest,
+  productRoutes,
   savingsWithdrawRoutes,
   supplierRoutes,
   userRoutes,
@@ -33,7 +35,7 @@ const mount = async (app: Application) => {
   const uploadFolderPath = path.join(__dirname, "../", "uploads");
 
   // Serve the uploads folder statically
-  app.use("/uploads", express.static(uploadFolderPath));
+  app.use("/api/v1/uploads", express.static(uploadFolderPath));
   app.use("/api/v1/users", userRoutes);
   app.use("/api/v1/contacts", isAuthenticated, customerRoutes);
   app.use("/api/v1/business", isAuthenticated, businessRoutes);
@@ -48,6 +50,8 @@ const mount = async (app: Application) => {
   app.use("/api/v1/income", isAuthenticated, incomeRoutes);
   app.use("/api/v1/withdraw", isAuthenticated, savingsWithdrawRoutes);
   app.use("/api/v1/reports", isAuthenticated, reportRoutes);
+  app.use("/api/v1/ports", isAuthenticated, portRoutest);
+  app.use("/api/v1/products", isAuthenticated, productRoutes);
   app.get("/api/v1/healthz", (_req, res) => {
     res.status(200).json({ status: "ok" });
   });

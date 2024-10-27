@@ -20,16 +20,6 @@ export class AccountController extends Controller<Account> {
         this.validateErr(req.body, "accountType", "accountName");
         this.isValidEnum(AccountType, req.body.accountType as AccountType);
 
-        const isExist = await this.repository.findOne({
-          where: {
-            accountName: req.body.accountName,
-            accountType: req.body.accountType,
-          },
-        });
-        if (isExist) {
-          return this.failed("Account name & type already exist", next);
-        }
-
         const account = new Account();
         Object.assign(account, req.body);
         account.balance = req.body.openingBalance.toString();

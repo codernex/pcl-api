@@ -7,7 +7,9 @@ export * from "./account";
 export * from "./expense";
 export * from "./expense-type";
 export * from "./payments";
-export * from './savings-withdraw';
-export * from './income-others'
-export * from './income-type'
-export * from './reports'
+export * from "./savings-withdraw";
+export * from "./income-others";
+export * from "./income-type";
+export * from "./reports";
+export * from "./product";
+export * from "./port";

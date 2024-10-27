@@ -28,6 +28,12 @@ export class Expense {
   })
   expenseType: ExpenseType;
 
+  @Column({ nullable: true, type: "longtext" })
+  details: string;
+
+  @Column({ nullable: true, type: "longtext" })
+  attachment: string;
+
   @CreateDateColumn()
   createdAt: Date;
 
