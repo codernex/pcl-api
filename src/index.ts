@@ -18,11 +18,14 @@ import {
   savingsWithdrawRoutes,
   supplierRoutes,
   userRoutes,
+  lgAgentRoutes,
 } from "./routes";
 import { roleRoutes } from "./routes/role";
 import { depositRoutes } from "./routes/deposit";
 import { incomeTypeRoutes } from "./routes/income-type";
 import { reportRoutes } from "./routes/reports";
+import { tierRoutes } from "./routes/tier";
+import { consignmentRoutes } from "./routes/consigment";
 
 const mount = async (app: Application) => {
   await appDataSource.initialize();
@@ -52,6 +55,9 @@ const mount = async (app: Application) => {
   app.use("/api/v1/reports", isAuthenticated, reportRoutes);
   app.use("/api/v1/ports", isAuthenticated, portRoutest);
   app.use("/api/v1/products", isAuthenticated, productRoutes);
+  app.use("/api/v1/lc-agents", isAuthenticated, lgAgentRoutes);
+  app.use("/api/v1/tracks", isAuthenticated, tierRoutes);
+  app.use("/api/v1/consignment", isAuthenticated, consignmentRoutes);
   app.get("/api/v1/healthz", (_req, res) => {
     res.status(200).json({ status: "ok" });
   });

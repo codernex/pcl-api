@@ -1,4 +1,5 @@
 import { Product } from "../entities";
+import { VolatileProduct } from "../entities/volatile-product";
 import { requestHandler } from "../utils";
 import { Controller } from "./base";
 
@@ -28,4 +29,28 @@ export class ProductController extends Controller<Product> {
     const data = await this.repository.find();
     return this.success(res, data);
   });
+
+  updateProduct = requestHandler(
+    async (req, res, next) => {
+      const product = await this.getRepository(VolatileProduct).findOne({
+        where: {
+          id: req.params.id,
+        },
+      });
+
+      if (!product) {
+        return this.failed("Product not found", next, 404);
+      }
+
+      Object.assign(product, req.body);
+
+      await this.getRepository(VolatileProduct).save(product);
+
+      this.success(res, product, 200);
+    },
+    {
+      body: {} as any,
+      params: {} as any,
+    }
+  );
 }

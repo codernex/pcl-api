@@ -11,3 +11,4 @@ export * from "./income-type";
 export * from "./savings-withdraw";
 export * from "./port";
 export * from "./product";
+export * from "./lc-agent";

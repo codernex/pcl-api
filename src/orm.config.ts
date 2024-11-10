@@ -12,6 +12,7 @@ import {
   Image,
   Income,
   IncomeType,
+  LcAgent,
   PaymentDetails,
   PaymentOption,
   Port,
@@ -22,6 +23,10 @@ import {
   Supplier,
   User,
 } from "./entities";
+import { Consignment } from "./entities/consignment";
+import { Documents, OtherCost, Track } from "./entities/track";
+import { VolatileProduct } from "./entities/volatile-product";
+import { TrackSubscriber } from "./listener/tracklistener";
 
 export const appDataSource = new DataSource({
   type: "mysql",
@@ -50,7 +55,14 @@ export const appDataSource = new DataSource({
     AmountTransfer,
     Port,
     Product,
+    LcAgent,
+    Consignment,
+    Track,
+    VolatileProduct,
+    OtherCost,
+    Documents,
   ],
+  subscribers: [TrackSubscriber],
   synchronize: true,
   host: sanitizedConfig.DB_HOST,
 });
