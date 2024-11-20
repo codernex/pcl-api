@@ -6,82 +6,40 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
+import { Account } from "./account";
 import { Customer } from "./customer";
-import { Supplier } from "./supplier";
-export enum PaymentMethod {
-  CASH = "CASH",
-}
-export enum PaymentStatus {
-  UNPAID = "UNPAID",
-  PAID = "PAID",
-  DUE = "DUE",
-}
-
+import { Project } from "./project";
 @Entity()
-export class PaymentOption {
+export class Payment {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  amount: number;
-
-  @Column({ nullable: true })
-  paid_amount: number;
-
-  @Column({ nullable: true })
-  discount_amount: number;
-
-  @Column({ nullable: true })
-  change_amount: number;
-
-  @Column({ nullable: true })
-  due_amount: number;
+  @ManyToOne(() => Project, (p) => p.payments)
+  project: Project;
 
   @Column()
-  type: string;
+  paidAmount: number;
 
-  @Column({ nullable: true, type: "enum", enum: PaymentMethod })
-  payment_method: PaymentMethod;
-
-  @Column({
-    nullable: true,
-    enum: PaymentStatus,
-    default: PaymentStatus.PAID,
-    type: "enum",
-  })
-  payment_status: PaymentStatus;
-
-  @Column()
-  reciver_id: number;
+  @ManyToOne(() => Account)
+  @JoinColumn()
+  account: Account;
 
   @Column({ nullable: true })
-  recived_by: string;
+  paymentMethod: string;
 
-  @ManyToOne(() => Customer, (c) => c.payment_option, {
+  @Column({ nullable: true })
+  refference:string
+
+  @ManyToOne(() => Customer, (c) => c.payments, {
     cascade: true,
     onUpdate: "CASCADE",
+    eager: true,
   })
   @JoinColumn({
-    name: "contact_id",
+    name: "customer_id",
     referencedColumnName: "id",
   })
-  contact: Customer;
-
-  @ManyToOne(() => Supplier, (s) => s.paymentOptions, {
-    cascade: true,
-    onUpdate: "CASCADE",
-  })
-  @JoinColumn({
-    name: "supplier_id",
-    referencedColumnName: "id",
-  })
-  supplier: Supplier;
-
-  @Column({ default: false })
-  isReverted: boolean;
-
-  @Column({ nullable: true })
-  payment_by_id: number;
+  customer: Customer;
 
   @CreateDateColumn()
   created_at: Date;

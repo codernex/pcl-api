@@ -2,10 +2,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  OneToMany,
-  PrimaryGeneratedColumn,
+  PrimaryGeneratedColumn
 } from "typeorm";
-import { PaymentOption } from "./paymentoption";
 
 @Entity()
 export class Supplier {
@@ -21,11 +19,6 @@ export class Supplier {
 
   @Column({default:0})
   due: number;
-
-  @OneToMany(() => PaymentOption, (paymentOption) => paymentOption.supplier, {
-    onUpdate: "CASCADE",
-  })
-  paymentOptions: PaymentOption[];
 
   @CreateDateColumn()
   createdAt: Date;

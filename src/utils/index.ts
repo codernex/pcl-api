@@ -29,6 +29,8 @@ export const requestHandler = <TQuery, TBody, TParams>(
     next: NextFunction
   ) => {
     await Promise.resolve(handler(req, res, next)).catch((err) => {
+      console.log(err);
+      
       return ApiError(err, 404, next);
     });
   };

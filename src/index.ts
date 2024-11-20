@@ -8,27 +8,31 @@ import { appDataSource } from "./orm.config";
 import {
   accountRoutes,
   businessRoutes,
+  costingRoutes,
   customerRoutes,
   expenseRoutes,
   expenseTypeRoutes,
   incomeRoutes,
-  paymentRoutes,
-  portRoutest,
-  productRoutes,
-  savingsWithdrawRoutes,
-  supplierRoutes,
-  userRoutes,
   lgAgentRoutes,
+  paymentRoutes,
+  planRoutes,
+  productionRoutes,
+  productRoutes,
+  projectRoutes,
+  savingsWithdrawRoutes,
+  userRoutes,
 } from "./routes";
-import { roleRoutes } from "./routes/role";
 import { depositRoutes } from "./routes/deposit";
 import { incomeTypeRoutes } from "./routes/income-type";
 import { reportRoutes } from "./routes/reports";
-import { tierRoutes } from "./routes/tier";
-import { consignmentRoutes } from "./routes/consigment";
+import { roleRoutes } from "./routes/role";
+import { factoryRoutes } from "./routes/factory";
 
 const mount = async (app: Application) => {
-  await appDataSource.initialize();
+  appDataSource.initialize().then(async () => {
+    await appDataSource.query(`SET GLOBAL time_zone = '+06:00';`);
+    await appDataSource.query(`SET time_zone = '+06:00';`)
+  }).catch(err => console.log(err));
 
   app.use(cors());
   app.use(express.json());
@@ -43,7 +47,6 @@ const mount = async (app: Application) => {
   app.use("/api/v1/contacts", isAuthenticated, customerRoutes);
   app.use("/api/v1/business", isAuthenticated, businessRoutes);
   app.use("/api/v1/roles", isAuthenticated, roleRoutes);
-  app.use("/api/v1/supplier", isAuthenticated, supplierRoutes);
   app.use("/api/v1/accounts", isAuthenticated, accountRoutes);
   app.use("/api/v1/expense", isAuthenticated, expenseRoutes);
   app.use("/api/v1/expense-types", isAuthenticated, expenseTypeRoutes);
@@ -53,11 +56,14 @@ const mount = async (app: Application) => {
   app.use("/api/v1/income", isAuthenticated, incomeRoutes);
   app.use("/api/v1/withdraw", isAuthenticated, savingsWithdrawRoutes);
   app.use("/api/v1/reports", isAuthenticated, reportRoutes);
-  app.use("/api/v1/ports", isAuthenticated, portRoutest);
   app.use("/api/v1/products", isAuthenticated, productRoutes);
   app.use("/api/v1/lc-agents", isAuthenticated, lgAgentRoutes);
-  app.use("/api/v1/tracks", isAuthenticated, tierRoutes);
-  app.use("/api/v1/consignment", isAuthenticated, consignmentRoutes);
+  app.use("/api/v1/projects", isAuthenticated, projectRoutes);
+  app.use("/api/v1/productions", isAuthenticated, productionRoutes);
+  app.use("/api/v1/plans", isAuthenticated, planRoutes);
+  app.use("/api/v1/costings", isAuthenticated, costingRoutes);
+  app.use("/api/v1/factory", isAuthenticated, factoryRoutes);
+
   app.get("/api/v1/healthz", (_req, res) => {
     res.status(200).json({ status: "ok" });
   });

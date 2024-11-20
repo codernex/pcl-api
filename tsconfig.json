@@ -29,7 +29,8 @@
     "resolveJsonModule": true,
     "typeRoots": [
       "./global.d.ts",
-      "./node_modules/@types"
+      "./node_modules/@types",
+      "./src/@types/**.d.ts"
     ]
   },
   "exclude": [

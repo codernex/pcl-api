@@ -6,6 +6,8 @@ import {
   AmountTransfer,
   Business,
   Customer,
+  Delivery,
+  Documents,
   Expense,
   ExpenseType,
   Granter,
@@ -13,20 +15,23 @@ import {
   Income,
   IncomeType,
   LcAgent,
+  Payment,
   PaymentDetails,
-  PaymentOption,
-  Port,
+  PlanProject,
   Product,
+  Production,
+  Project,
   Role,
   SavingDeposit,
   SavingsWithdraw,
   Supplier,
   User,
 } from "./entities";
-import { Consignment } from "./entities/consignment";
-import { Documents, OtherCost, Track } from "./entities/track";
 import { VolatileProduct } from "./entities/volatile-product";
-import { TrackSubscriber } from "./listener/tracklistener";
+import { Costing } from "./entities/costing";
+import { Factory } from "./entities/factory";
+import { OpeningQuantity } from "./entities/opening-quantity";
+import { FactoryVolatileProduct } from "./entities/FactoryVolatileProduct";
 
 export const appDataSource = new DataSource({
   type: "mysql",
@@ -41,7 +46,7 @@ export const appDataSource = new DataSource({
     Customer,
     Image,
     Business,
-    PaymentOption,
+    Payment,
     Granter,
     Supplier,
     Account,
@@ -53,16 +58,19 @@ export const appDataSource = new DataSource({
     IncomeType,
     SavingsWithdraw,
     AmountTransfer,
-    Port,
     Product,
     LcAgent,
-    Consignment,
-    Track,
+    Project,
+    Delivery,
+    PlanProject,
+    Production,
     VolatileProduct,
-    OtherCost,
     Documents,
+    Costing,
+    Factory,
+    OpeningQuantity,
+    FactoryVolatileProduct,
   ],
-  subscribers: [TrackSubscriber],
   synchronize: true,
   host: sanitizedConfig.DB_HOST,
 });

@@ -1,14 +1,15 @@
 import { NextFunction, Response } from "express";
 import { appDataSource } from "../orm.config";
-import { EntityTarget, ObjectLiteral, Repository } from "typeorm";
+import { EntityTarget, ObjectLiteral, QueryRunner, Repository } from "typeorm";
 import { ApiError, ErrorHandler } from "../utils";
 import { APIResponse } from "../types";
 
 export abstract class Controller<T extends ObjectLiteral> {
   protected repository: Repository<T>;
-
+  protected queryRunner: QueryRunner;
   constructor(Entity: EntityTarget<T>) {
     this.repository = appDataSource.getRepository(Entity);
+    this.queryRunner = appDataSource.createQueryRunner();
   }
 
   protected getRepository = <U extends ObjectLiteral>(

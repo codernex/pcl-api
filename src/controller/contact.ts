@@ -1,9 +1,8 @@
 import {
   Customer,
   Granter,
-  PaymentMethod,
-  PaymentOption,
-  PaymentStatus,
+  Payment,
+  Project,
   SavingDeposit,
   TransactionType,
 } from "../entities";
@@ -52,10 +51,10 @@ export class ContactController extends Controller<Customer> {
     try {
       const contacts = await this.repository.find({
         relations: {
-          payment_option: true,
+          payments: true,
         },
         order: {
-          payment_option: {
+          payments: {
             created_at: "DESC",
           },
         },
@@ -96,43 +95,71 @@ export class ContactController extends Controller<Customer> {
   collectDue = requestHandler(
     async (req, res, next) => {
       try {
-        this.validateErr(req.body, "amount", "paymentMethod", "accountId");
+        this.validateErr(req.body, "amount", "accountId", "projectId");
 
         if (!req.user) {
           throw new Error("Unauthorized user");
         }
+
         const contact = await this.repository.findOneOrFail({
           where: {
             id: req.params.id,
           },
           relations: {
-            payment_option: true,
+            payments: true,
           },
         });
 
+        const project = await this.getRepository(Project).findOne({
+          where: {
+            id: req.body.projectId,
+          },
+        });
+
+        if (!project) {
+          throw new ErrorHandler("Project not found", 404);
+        }
+
         const amount = Number.parseFloat(req.body.amount);
         const changeAmount = Math.max(amount - contact.due, 0);
+
+        if (project.dueAmount < amount) {
+          throw new ErrorHandler("Can't pay more than due amount", 404);
+        }
+
         if (contact.due < amount) {
           throw new ErrorHandler("Can't pay more than due amount", 404);
         }
-        const payment = await this.createCashPayment(
-          contact,
-          amount - changeAmount,
-          req,
-          changeAmount,
-          "COLLECT_DUE"
+
+        project.dueAmount = Math.max(project.dueAmount - amount, 0);
+        project.paidAmount= Number(project.paidAmount) + amount;
+        contact.due = Math.max(Number(contact.due) - amount, 0);
+        const account = await AccountController.currentAccount(
+          req.body.accountId
         );
+
         await AccountController.updateBalance(
           amount - changeAmount,
           req.body.accountId,
-          TransactionType.DEBIT,
+          TransactionType.CREDIT,
           "COLLECT_DUE",
-          "Collect Retail Due From Customer",
+          "Collect Due From Customer",
           contact
         );
-        await this.getRepository(PaymentOption).save(payment);
 
-        this.success(res, payment, 200);
+        const payment = new Payment();
+        payment.paidAmount = amount;
+        payment.customer = contact;
+        payment.account = req.body.paymentMethod;
+        payment.account = account;
+        payment.project = project;
+        payment.paymentMethod= req.body.paymentMethod;
+        payment.refference= req.body.refference;
+
+        await this.getRepository(Project).save(project);
+        const collectDue = await this.getRepository(Payment).save(payment);
+
+        this.success(res, collectDue, 200);
       } catch (err) {
         return ApiError(err, 500, next);
       }
@@ -251,31 +278,4 @@ export class ContactController extends Controller<Customer> {
       body: {} as any,
     }
   );
-
-  private async createCashPayment(
-    contact: Customer,
-    amount: number,
-    req: any,
-    changeAmount: number,
-    type: string
-  ) {
-    contact.due = contact.due - amount || 0;
-
-    await this.repository.save(contact);
-    const payment = new PaymentOption();
-    payment.type = type;
-    payment.amount = contact.due;
-    payment.paid_amount = amount;
-    payment.payment_method = PaymentMethod.CASH;
-    payment.payment_status = payment.amount
-      ? PaymentStatus.DUE
-      : PaymentStatus.PAID;
-    payment.payment_by_id = contact.id;
-    payment.due_amount = contact.due > 0 ? contact.due : 0;
-    payment.change_amount = changeAmount > 0 ? changeAmount : 0;
-    payment.recived_by = "Owner";
-    payment.reciver_id = req.user?.id;
-    payment.contact = contact;
-    return payment;
-  }
 }

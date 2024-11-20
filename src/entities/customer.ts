@@ -8,7 +8,7 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 import { Granter } from "./granter";
-import { PaymentOption } from "./paymentoption";
+import { Payment } from "./paymentoption";
 import { SavingDeposit } from "./saving-deposit";
 
 @Entity()
@@ -73,8 +73,9 @@ export class Customer extends BaseEntity {
   @Column({ nullable: true })
   nationality: string;
 
-  @OneToMany(() => PaymentOption, (p) => p.contact)
-  payment_option: PaymentOption[];
+  @OneToMany(() => Payment, (p) => p.customer)
+  payments: Payment[];
+  
   @OneToMany(() => Granter, (g) => g.customer, {
     onDelete: "RESTRICT",
     onUpdate: "CASCADE",
