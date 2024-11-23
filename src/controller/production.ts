@@ -1,11 +1,11 @@
+import { toZonedTime } from "date-fns-tz";
 import { Between, FindOptionsWhere } from "typeorm";
 import { Customer, Product, Production, Project } from "../entities";
 import { Factory } from "../entities/factory";
 import { FactoryVolatileProduct } from "../entities/FactoryVolatileProduct";
-import { OpeningQuantity } from "../entities/opening-quantity";
+import { ProductionProduct } from "../entities/production-product";
 import { requestHandler } from "../utils";
 import { Controller } from "./base";
-import { toZonedTime } from "date-fns-tz";
 
 export class ProductionController extends Controller<Production> {
   constructor() {
@@ -14,13 +14,8 @@ export class ProductionController extends Controller<Production> {
 
   create = requestHandler(
     async (req, res, next) => {
-      this.validateErr(req.body, "productId", "quantity", "factoryId");
+      this.validateErr(req.body, "products", "quantity", "factoryId");
 
-      const product = await this.getRepository(Product).findOne({
-        where: {
-          id: req.body.productId,
-        },
-      });
       const factory = await this.getRepository(Factory).findOne({
         where: {
           id: req.body.factoryId,
@@ -31,9 +26,48 @@ export class ProductionController extends Controller<Production> {
         return this.failed("Factory not found", next);
       }
 
-      if (!product) {
-        return this.failed("Product not found", next);
-      }
+      const productionProduct = await Promise.all(
+        req.body.products.map(async (p) => {
+          const newProduct = new ProductionProduct();
+
+          newProduct.name = p.name;
+          newProduct.quantity = p.quantity;
+          newProduct.originalId = p.id;
+
+          const product = await this.getRepository(Product).findOne({
+            where: {
+              id: p.id,
+            },
+          });
+          if (!product) {
+            throw new Error(
+              "Someing went wrong while creating produciton product"
+            );
+          }
+
+          const volatile = await this.getRepository(
+            FactoryVolatileProduct
+          ).findOne({
+            where: {
+              factory: {
+                id: factory.id,
+              },
+              originalId: product.id,
+            },
+          });
+          if (!volatile) {
+            throw new Error(
+              "Someing went wrong while creating produciton product"
+            );
+          }
+
+          volatile.stock = Number(volatile.stock) + Number(p.quantity);
+          product.stock += parseInt(p.quantity);
+          await this.getRepository(FactoryVolatileProduct).save(volatile);
+          await this.getRepository(Product).save(product);
+          return await this.getRepository(ProductionProduct).save(newProduct);
+        })
+      );
 
       const production = new Production();
       if (req.body.projectId) {
@@ -75,43 +109,15 @@ export class ProductionController extends Controller<Production> {
         }
       }
 
-      const openingQuantity = await this.getRepository(OpeningQuantity)
-        .createQueryBuilder("oq")
-        .leftJoinAndSelect("oq.factory", "f")
-        .leftJoinAndSelect("oq.product", "p")
-        .where("f.id = :factoryId", { factoryId: req.body.factoryId })
-        .andWhere("p.id = :productId", { productId: req.body.productId })
-        .getOne();
-
-      if (!openingQuantity) {
-        return this.failed("Opening quantity not found", next);
-      }
-
-      production.product = product;
+      production.products = productionProduct;
       production.quantity = req.body.quantity;
       production.factory = factory;
 
-      product.stock = Number(product.stock) + Number(req.body.quantity);
-
-      const volatile = await this.getRepository(FactoryVolatileProduct).findOne(
-        {
-          where: {
-            factory: {
-              id: factory.id,
-            },
-            originalId: product.id,
-          },
-        }
-      );
-
-      if (!volatile) {
-        throw new Error("Something went wrong with volatile product");
+      if (req.body.shift === "day") {
+        production.dayShift = parseInt(req.body.quantity) || 0;
+      } else {
+        production.nightShift = parseInt(req.body.quantity) || 0;
       }
-      volatile.stock = Number(volatile.stock) + Number(req.body.quantity);
-
-      await this.getRepository(FactoryVolatileProduct).save(volatile);
-
-      await this.getRepository(Product).save(product);
 
       await this.getRepository(Production).save(production);
       this.success(res, production);
@@ -128,6 +134,7 @@ export class ProductionController extends Controller<Production> {
         endDate.setHours(23, 59, 59, 999);
         where.createdAt = Between(req.query.startDate, endDate);
       }
+
       const production = await this.repository.find({
         relations: {
           customer: true,

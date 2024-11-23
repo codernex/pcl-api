@@ -1,5 +1,13 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
 import { Project } from "./project";
+import { Slot } from "./slot";
 
 @Entity()
 export class VolatileProduct {
@@ -10,7 +18,7 @@ export class VolatileProduct {
   originalId: number;
 
   @Column()
-  name:string
+  name: string;
 
   @Column()
   unitRate: number;
@@ -18,9 +26,18 @@ export class VolatileProduct {
   @Column()
   quantity: number;
 
-  @Column({default:0})
+  @Column({ default: 0 })
   deliveredQuantity: number;
 
-  @ManyToOne(() => Project,p=>p.products)
-  project: Project
+  @Column({ default: 0 })
+  pendingQuantity: number;
+
+  @ManyToOne(() => Slot, (p) => p.products)
+  slot: Slot;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

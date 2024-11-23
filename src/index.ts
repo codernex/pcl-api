@@ -21,6 +21,7 @@ import {
   projectRoutes,
   savingsWithdrawRoutes,
   userRoutes,
+  wastageRoutes,
 } from "./routes";
 import { depositRoutes } from "./routes/deposit";
 import { incomeTypeRoutes } from "./routes/income-type";
@@ -29,10 +30,13 @@ import { roleRoutes } from "./routes/role";
 import { factoryRoutes } from "./routes/factory";
 
 const mount = async (app: Application) => {
-  appDataSource.initialize().then(async () => {
-    await appDataSource.query(`SET GLOBAL time_zone = '+06:00';`);
-    await appDataSource.query(`SET time_zone = '+06:00';`)
-  }).catch(err => console.log(err));
+  appDataSource
+    .initialize()
+    .then(async () => {
+      await appDataSource.query(`SET GLOBAL time_zone = '+06:00';`);
+      await appDataSource.query(`SET time_zone = '+06:00';`);
+    })
+    .catch((err) => console.log(err));
 
   app.use(cors());
   app.use(express.json());
@@ -63,6 +67,7 @@ const mount = async (app: Application) => {
   app.use("/api/v1/plans", isAuthenticated, planRoutes);
   app.use("/api/v1/costings", isAuthenticated, costingRoutes);
   app.use("/api/v1/factory", isAuthenticated, factoryRoutes);
+  app.use("/api/v1/wastage", isAuthenticated, wastageRoutes);
 
   app.get("/api/v1/healthz", (_req, res) => {
     res.status(200).json({ status: "ok" });

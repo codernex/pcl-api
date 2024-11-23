@@ -11,6 +11,8 @@ const {
   getDelivery,
   updateStatus,
   uploadDeliveryDocuments,
+  addOrder,
+  removeOrder
 } = new ProjectController();
 projectRoutes.route("/").get(getProjects).post(addProject);
 projectRoutes
@@ -25,3 +27,6 @@ projectRoutes.post(
   uploadImage.single("file"),
   uploadDeliveryDocuments
 );
+projectRoutes.post("/add-order", addOrder);
+
+projectRoutes.patch("/remove-order",removeOrder)

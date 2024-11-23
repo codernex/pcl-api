@@ -1,9 +1,11 @@
-import { Product } from "../entities";
+import { Between, FindOptionsWhere } from "typeorm";
+import { Product, Production } from "../entities";
 import { Factory } from "../entities/factory";
 import { FactoryVolatileProduct } from "../entities/FactoryVolatileProduct";
 import { OpeningQuantity } from "../entities/opening-quantity";
 import { requestHandler } from "../utils";
 import { Controller } from "./base";
+import { VolatileProduct } from "../entities/volatile-product";
 
 export class ProductController extends Controller<Product> {
   constructor() {
@@ -82,18 +84,28 @@ export class ProductController extends Controller<Product> {
     }
   );
 
-  get = requestHandler(async (req, res, next) => {
-    const data = await this.repository.find({
-      order: {
-        created_at: "DESC",
-      },
-      relations: {
-        productions: true,
-      },
-    });
+  get = requestHandler(
+    async (req, res, next) => {
+      let where: FindOptionsWhere<Product> = {};
+      if (req.query.startDate && req.query.endDate) {
+        // Convert the endDate to 23:59:59
+        let endDate = new Date(req.query.endDate);
+        endDate.setHours(23, 59, 59, 999);
+        where.created_at = Between(req.query.startDate, endDate);
+      }
+      const data = await this.repository.find({
+        order: {
+          created_at: "DESC",
+        },
+        where,
+      });
 
-    return this.success(res, data);
-  });
+      return this.success(res, data);
+    },
+    {
+      query: {} as any,
+    }
+  );
 
   getProductDetails = requestHandler(
     async (req, res, next) => {
@@ -102,21 +114,18 @@ export class ProductController extends Controller<Product> {
         .createQueryBuilder("product")
         .leftJoinAndSelect("product.openingQuantity", "openingQuantity")
         .leftJoinAndSelect("openingQuantity.factory", "factory")
-        .leftJoinAndSelect("product.productions", "production")
-        .leftJoinAndSelect("production.factory", "productionFactory")
-        .leftJoinAndSelect("production.product", "productionProduct")
         .leftJoinAndSelect("factory.deliveries", "delivery")
         .leftJoinAndSelect("delivery.factory", "deliveryFactory")
         .leftJoinAndSelect("delivery.products", "products")
         .where("product.id=:id", { id: req.params.id })
         .getOne();
 
-      const productions = product?.productions
-        .filter((p) => p.product?.id === product?.id)
-        .map((p) => ({
-          ...p,
-          type: "production",
-        }));
+      const productions = await this.getRepository(Production)
+        .createQueryBuilder("pr")
+        .leftJoinAndSelect("pr.factory", "factory")
+        .leftJoinAndSelect("pr.products", "products")
+        .where("products.originalId=:id", { id: req.params.id })
+        .getMany();
       const openingQuantity = product?.openingQuantity.map(
         ({ factory, ...o }) => ({
           openingQuantity: {
@@ -138,14 +147,19 @@ export class ProductController extends Controller<Product> {
       if (
         !productions?.length &&
         !openingQuantity?.length &&
-        !deliveries?.length
+        !deliveries?.length ||
+        !product
       ) {
         this.success(res, null, 200, "No data found");
         return;
       }
 
       this.success(res, {
-        productions,
+        productions: productions.map((p) => ({
+          ...p,
+          quantity: p.products.find((pr) => pr.originalId === product.id)
+            ?.quantity,
+        })),
         deliveries,
         openingQuantity,
       });
@@ -156,4 +170,9 @@ export class ProductController extends Controller<Product> {
       },
     }
   );
+
+  getVolatileProducts = requestHandler(async (req, res, next) => {
+    const data = await this.getRepository(VolatileProduct).find();
+    return this.success(res, data);
+  });
 }

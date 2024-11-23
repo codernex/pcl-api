@@ -13,7 +13,10 @@ export class Income {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: "bigint" })
+  @Column({ type: "bigint",transformer:{
+    to: (v) => v.toString(),
+    from: (v) => parseInt(v),
+  } })
   amount: number;
 
   @ManyToOne(() => IncomeType, {

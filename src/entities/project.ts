@@ -17,6 +17,8 @@ import { PlanProject } from "./plan-project";
 import { Production } from "./production";
 import { VolatileProduct } from "./volatile-product";
 import { Factory } from "./factory";
+import { Wastage } from "./wastage";
+import { Slot } from "./slot";
 
 @Entity()
 export class Project {
@@ -29,15 +31,18 @@ export class Project {
   @ManyToOne(() => Customer, { eager: true })
   customer: Customer;
 
-  @OneToMany(() => VolatileProduct, (p) => p.project, {
+  @OneToMany(() => Slot, (s) => s.project, {
     eager: true,
   })
-  products: VolatileProduct[];
+  slots: Slot[];
 
   @OneToMany(() => Costing, (c) => c.project, {
     eager: true,
   })
   costings: Costing[];
+
+  @OneToMany(() => Wastage, (w) => w.project)
+  wastages: Wastage[];
 
   @Column()
   quantity: number;
@@ -131,17 +136,16 @@ export class Delivery {
   @Column({ default: "ON_THE_WAY" })
   status: string;
 
-  @OneToMany(()=>Documents,(d)=>d.delivery,{
-    eager:true
+  @OneToMany(() => Documents, (d) => d.delivery, {
+    eager: true,
   })
-  documents:Documents[]
+  documents: Documents[];
 
-  @ManyToOne(()=>Factory,f=>f.deliveries)
-  factory:Factory
+  @ManyToOne(() => Factory, (f) => f.deliveries)
+  factory: Factory;
 
-  @Column({nullable:true})
-  url:string
-
+  @Column({ nullable: true })
+  url: string;
 
   @CreateDateColumn()
   createAt: Date;

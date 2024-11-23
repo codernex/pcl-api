@@ -1,19 +1,11 @@
 import {
-  BeforeInsert,
   Column,
   CreateDateColumn,
   Entity,
-  JoinColumn,
-  ManyToMany,
-  ManyToOne,
   OneToMany,
-  OneToOne,
-  PrimaryGeneratedColumn,
+  PrimaryGeneratedColumn
 } from "typeorm";
-import { Project } from "./project";
-import { Factory } from "./factory";
 import { OpeningQuantity } from "./opening-quantity";
-import { Production } from "./production";
 
 @Entity()
 export class Product {
@@ -25,12 +17,6 @@ export class Product {
 
   @Column({ nullable: true, type: "longtext" })
   description: string;
-
-  @ManyToOne(() => Project)
-  project: Project;
-
-  @OneToMany(() => Production, (p) => p.product)
-  productions: Production[];
 
   @OneToMany(() => OpeningQuantity, (f) => f.product, {
     eager: true,

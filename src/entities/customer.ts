@@ -10,6 +10,7 @@ import {
 import { Granter } from "./granter";
 import { Payment } from "./paymentoption";
 import { SavingDeposit } from "./saving-deposit";
+import { Wastage } from "./wastage";
 
 @Entity()
 export class Customer extends BaseEntity {
@@ -31,6 +32,9 @@ export class Customer extends BaseEntity {
   @Column({ unique: true })
   mobile: string;
 
+  @OneToMany(() => Wastage, (w) => w.customer)
+  wastages: Wastage[];
+
   @Column()
   designation: string;
 
@@ -40,10 +44,22 @@ export class Customer extends BaseEntity {
   @Column({ nullable: true })
   alternative_mobile: string;
 
-  @Column({ default: 0, type: "bigint" })
+  @Column({
+    type: "bigint",
+    transformer: {
+      to: (v) => v.toString(),
+      from: (v) => parseInt(v),
+    },
+  })
   opening_balance: number;
 
-  @Column({ default: 0, type: "bigint" })
+  @Column({
+    type: "bigint",
+    transformer: {
+      to: (v) => v.toString(),
+      from: (v) => parseInt(v),
+    },
+  })
   credit_limit: number;
 
   @Column({ nullable: true })
@@ -52,13 +68,27 @@ export class Customer extends BaseEntity {
   @Column({ nullable: true })
   husband_or_parent_name: string;
 
-  @Column({ default: 0, type: "bigint" })
+  @Column({
+    type: "bigint",
+    transformer: {
+      to: (v) => v.toString(),
+      from: (v) => parseInt(v),
+    },
+  })
   savings: number;
 
   @Column({ default: false })
   is_hire_account_closed: boolean;
 
-  @Column({ nullable: true, default: 0, type: "bigint" })
+  @Column({
+    nullable: true,
+    default: 0,
+    type: "bigint",
+    transformer: {
+      to: (value: BigInt) => value.toString(), // Store as string in database
+      from: (value: string) => Number(value), // Convert from string to BigInt when retrieving from database
+    },
+  })
   due: number;
 
   @Column({ nullable: true })
@@ -75,7 +105,7 @@ export class Customer extends BaseEntity {
 
   @OneToMany(() => Payment, (p) => p.customer)
   payments: Payment[];
-  
+
   @OneToMany(() => Granter, (g) => g.customer, {
     onDelete: "RESTRICT",
     onUpdate: "CASCADE",

@@ -14,3 +14,4 @@ export * from "./project";
 export * from "./production";
 export * from "./plan";
 export * from "./costing";
+export * from "./wastage";

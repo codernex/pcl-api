@@ -32,6 +32,10 @@ import { Costing } from "./entities/costing";
 import { Factory } from "./entities/factory";
 import { OpeningQuantity } from "./entities/opening-quantity";
 import { FactoryVolatileProduct } from "./entities/FactoryVolatileProduct";
+import { Wastage } from "./entities/wastage";
+import { WastageProduct } from "./entities/wastage-product";
+import { Slot } from "./entities/slot";
+import { ProductionProduct } from "./entities/production-product";
 
 export const appDataSource = new DataSource({
   type: "mysql",
@@ -70,6 +74,10 @@ export const appDataSource = new DataSource({
     Factory,
     OpeningQuantity,
     FactoryVolatileProduct,
+    Wastage,
+    WastageProduct,
+    Slot,
+    ProductionProduct
   ],
   synchronize: true,
   host: sanitizedConfig.DB_HOST,

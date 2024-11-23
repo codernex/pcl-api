@@ -12,7 +12,8 @@ import { FactoryVolatileProduct } from "../entities/FactoryVolatileProduct";
 import { VolatileProduct } from "../entities/volatile-product";
 import { requestHandler } from "../utils";
 import { Controller } from "./base";
-import { Between, FindOptionsWhere } from "typeorm";
+import { Between, FindOptionsWhere, In } from "typeorm";
+import { Slot } from "../entities/slot";
 
 export class ProjectController extends Controller<Project> {
   constructor() {
@@ -57,13 +58,17 @@ export class ProjectController extends Controller<Project> {
         return product;
       });
 
+      const slot = new Slot();
+      slot.project = project;
+      slot.name = "Default Slot";
+      slot.products = await Promise.all(volatileProducts);
+
       try {
         project.customer = customer;
         project.paidAmount = paidAmount;
         project.totalAmount = totalAmount;
         project.dueAmount = dueAmount;
         project.quantity = req.body.quantity;
-        project.products = await Promise.all(volatileProducts);
         project.projectName = req.body.projectName;
         project.address = req.body.address;
         customer.due = Number(customer.due) + dueAmount;
@@ -71,6 +76,7 @@ export class ProjectController extends Controller<Project> {
         await Promise.all([
           this.getRepository(Customer).save(customer),
           this.repository.save(project),
+          this.getRepository(Slot).save(slot),
         ]);
       } catch (error) {
         return this.failed(error.message, next);
@@ -92,6 +98,7 @@ export class ProjectController extends Controller<Project> {
         planProject: {
           product: true,
         },
+        wastages: true,
       },
     });
     this.success(res, projects, 200);
@@ -205,7 +212,7 @@ export class ProjectController extends Controller<Project> {
               }
 
               // Update product's delivered quantity
-              product.deliveredQuantity += p.quantity;
+              product.pendingQuantity += p.quantity;
 
               originalProduct.stock = Math.max(
                 originalProduct.stock - p.quantity,
@@ -220,7 +227,7 @@ export class ProjectController extends Controller<Project> {
 
               await this.getRepository(VolatileProduct).save(product);
 
-              return { ...product, deliveredQuantity: p.quantity };
+              return { ...product, pendingQuantity: p.quantity };
             } catch (error) {
               console.log(error);
 
@@ -318,11 +325,41 @@ export class ProjectController extends Controller<Project> {
         where: {
           id: req.body.deliveryId,
         },
+        relations: {
+          products: true,
+        },
       });
       if (!delivery) {
         return this.failed("Delivery not found", next);
       }
       delivery.status = "RECIEVED";
+
+      const products = await this.getRepository(VolatileProduct).find({
+        where: {
+          id: In(delivery.products.map((p) => p.id)),
+        },
+      });
+
+      if (!products.length) {
+        return this.failed("Products not found", next);
+      }
+
+      await Promise.all(
+        products.map(async (p) => {
+          const product = await this.getRepository(VolatileProduct).findOne({
+            where: {
+              id: p.id,
+            },
+          });
+          if (!product) {
+            throw new Error("Something went wrong");
+          }
+          product.deliveredQuantity += product.pendingQuantity;
+
+          await this.getRepository(VolatileProduct).save(product);
+        })
+      );
+
       await this.getRepository(Delivery).save(delivery);
       this.success(res, delivery);
     },
@@ -391,6 +428,131 @@ export class ProjectController extends Controller<Project> {
       await this.getRepository(Documents).save(document);
 
       this.success(res, document, 201);
+    },
+    {
+      body: {} as any,
+    }
+  );
+
+  addOrder = requestHandler(
+    async (req, res, next) => {
+      this.validateErr(req.body, "projectId", "products", "name");
+      const project = await this.repository.findOne({
+        where: {
+          id: req.body.projectId,
+        },
+      });
+
+      if (!project) {
+        return this.failed("Project not found", next);
+      }
+
+      const volatileProducts = await Promise.all(
+        req.body.products.map(async ({ id, ...p }) => {
+          const product = new VolatileProduct();
+          product.originalId = id;
+          product.quantity = p.quantity;
+          product.deliveredQuantity = 0;
+          product.name = p.name;
+          product.unitRate = p.unitRate;
+
+          await this.getRepository(VolatileProduct).save(product);
+          return product;
+        })
+      );
+
+      const totalAmount = volatileProducts.reduce(
+        (a, b) => a + (parseInt(b.unitRate) || 0) * (parseInt(b.quantity) || 0),
+        0
+      );
+      const quantity = volatileProducts.reduce(
+        (a, b) => a + parseInt(b.quantity) || 0,
+        0
+      );
+
+      const customer = await this.getRepository(Customer).findOne({
+        where: {
+          id: project.customer.id,
+        },
+      });
+
+      if (!customer) {
+        return this.failed("Customer not found", next);
+      }
+      const slot = new Slot();
+      slot.project = project;
+      slot.products = volatileProducts;
+      slot.name = req.body.name;
+
+      project.quantity += quantity;
+      project.totalAmount += totalAmount;
+      project.dueAmount += totalAmount;
+      customer.due += totalAmount;
+      await this.getRepository(Project).save(project);
+      await this.getRepository(Customer).save(customer);
+      await this.getRepository(Slot).save(slot);
+      this.success(res, project);
+    },
+    {
+      body: {} as any,
+    }
+  );
+
+  removeOrder = requestHandler(
+    async (req, res, next) => {
+      this.validateErr(req.body, "projectId", "productId", "slotId");
+
+      const project = await this.repository.findOne({
+        where: {
+          id: req.body.projectId,
+        },
+      });
+      if (!project) {
+        throw new Error("Project not found");
+      }
+
+      const customer = await this.getRepository(Customer).findOne({
+        where: {
+          id: project?.customer?.id,
+        },
+      });
+
+      if (!customer) {
+        throw new Error("Customer not found");
+      }
+
+      const product = await this.getRepository(VolatileProduct).findOne({
+        where: {
+          id: req.body.productId,
+        },
+      });
+
+      if (!product) {
+        throw new Error("Product not found");
+      }
+
+      const slot = await this.getRepository(Slot).findOne({
+        where: {
+          id: req.body.slotId,
+        },
+      });
+
+      if (!slot) {
+        throw new Error("Slot not found");
+      }
+      slot.products = slot.products.filter((p) => p.id !== product.id);
+      await this.getRepository(Slot).save(slot);
+
+      const productAmount = product.unitRate * product.quantity;
+
+      project.quantity -= product.quantity;
+      project.totalAmount -= productAmount;
+      project.dueAmount -= productAmount;
+      customer.due -= productAmount;
+
+      await this.getRepository(Customer).save(customer);
+      await this.getRepository(Project).save(project);
+      this.success(res, project);
     },
     {
       body: {} as any,

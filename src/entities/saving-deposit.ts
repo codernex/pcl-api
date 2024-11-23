@@ -15,7 +15,10 @@ export class SavingDeposit {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({type:"bigint"})
+  @Column({ type: "bigint",transformer:{
+    to: (v) => v.toString(),
+    from: (v) => parseInt(v),
+  } })
   amount: number;
 
   @ManyToOne(() => Customer, (customer) => customer.savingDeposit, {
@@ -26,7 +29,10 @@ export class SavingDeposit {
   })
   customer: Customer;
 
-  @Column({ default: 0, type: "bigint" })
+  @Column({ type: "bigint",transformer:{
+    to: (v) => v.toString(),
+    from: (v) => parseInt(v),
+  } })
   cost: number;
 
   @CreateDateColumn()
