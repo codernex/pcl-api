@@ -33,8 +33,9 @@ const mount = async (app: Application) => {
   appDataSource
     .initialize()
     .then(async () => {
-      await appDataSource.query(`SET GLOBAL time_zone = '+06:00';`);
-      await appDataSource.query(`SET time_zone = '+06:00';`);
+      // await appDataSource.query(`SET GLOBAL time_zone = '+06:00';`);
+      // await appDataSource.query(`SET time_zone = '+06:00';`);
+      console.log("Database Connected")
     })
     .catch((err) => console.log(err));
 
