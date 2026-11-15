@@ -1,6 +1,7 @@
 import { LessThan, FindOptionsWhere } from "typeorm";
 import {
   Customer,
+  Documents,
   Granter,
   Payment,
   Project,
@@ -48,6 +49,34 @@ export class ContactController extends Controller<Customer> {
     }
   );
 
+  getContact = requestHandler(
+    async (req, res, next) => {
+      try {
+        const contact = await this.repository.findOne({
+          where: {
+            id: parseInt(req.params.id),
+          },
+          relations: {
+            payments: true,
+            documents: true,
+            granter: true,
+          },
+        });
+
+        if (!contact) {
+          throw new ErrorHandler("Customer not found", 404);
+        }
+
+        return this.success(res, contact, 200);
+      } catch (err) {
+        return ApiError(err, 500, next);
+      }
+    },
+    {
+      params: { id: "" },
+    }
+  );
+
   getContacts = requestHandler(async (req, res, next) => {
     try {
       const { cursor, limit } = parseCursorParams(req.query);
@@ -62,6 +91,8 @@ export class ContactController extends Controller<Customer> {
           where,
           relations: {
             payments: true,
+            documents: true,
+            granter: true,
           },
           order: {
             id: "DESC",
@@ -229,34 +260,93 @@ export class ContactController extends Controller<Customer> {
 
   uploadDocuments = requestHandler(
     async (req, res, next) => {
-      this.validateErr(req.params, "id");
+      try {
+        this.validateErr(req.params, "id");
 
-      const files = req.files as any[];
+        const files = req.files as Express.Multer.File[];
 
-      if (!files) {
-        throw new ErrorHandler("File not found", 404);
+        if (!files || files.length === 0) {
+          throw new ErrorHandler("File not found", 400);
+        }
+
+        const contact = await this.repository.findOneOrFail({
+          where: {
+            id: parseInt(req.params.id),
+          },
+        });
+
+        const documentRepo = this.getRepository(Documents);
+        const documentName =
+          (req.body as any)?.name?.trim() || "Customer Document";
+
+        const newDocuments: Documents[] = files.map((file) => {
+          const doc = new Documents();
+          doc.url = "/uploads/" + file.filename;
+          doc.name = documentName;
+          doc.customer = contact;
+          return doc;
+        });
+
+        await documentRepo.save(newDocuments);
+
+        const updatedContact = await this.repository.findOneOrFail({
+          where: {
+            id: parseInt(req.params.id),
+          },
+          relations: {
+            documents: true,
+            payments: true,
+            granter: true,
+          },
+        });
+
+        this.success(res, updatedContact, 200);
+      } catch (err) {
+        return ApiError(err, 500, next);
       }
-
-      const contact = await this.repository.findOneOrFail({
-        where: {
-          id: parseInt(req.params.id),
-        },
-      });
-
-      let documentStr = "";
-      files.forEach((file) => {
-        documentStr += "/uploads/" + file.filename + ",";
-      });
-
-      contact.documents += documentStr;
-      contact.documents = contact.documents.replace("null", "");
-
-      await this.repository.save(contact);
-
-      this.success(res, contact, 200);
     },
     {
       params: { id: "" },
+    }
+  );
+
+  deleteDocument = requestHandler(
+    async (req, res, next) => {
+      try {
+        this.validateErr(req.params, "id", "docId");
+
+        const documentRepo = this.getRepository(Documents);
+        const doc = await documentRepo.findOne({
+          where: {
+            id: parseInt(req.params.docId),
+            customer: { id: parseInt(req.params.id) },
+          },
+        });
+
+        if (!doc) {
+          throw new ErrorHandler("Document not found", 404);
+        }
+
+        await documentRepo.remove(doc);
+
+        const updatedContact = await this.repository.findOneOrFail({
+          where: {
+            id: parseInt(req.params.id),
+          },
+          relations: {
+            documents: true,
+            payments: true,
+            granter: true,
+          },
+        });
+
+        this.success(res, updatedContact, 200);
+      } catch (err) {
+        return ApiError(err, 500, next);
+      }
+    },
+    {
+      params: { id: "", docId: "" },
     }
   );
 

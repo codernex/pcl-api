@@ -11,6 +11,7 @@ import { Granter } from "./granter";
 import { Payment } from "./paymentoption";
 import { SavingDeposit } from "./saving-deposit";
 import { Wastage } from "./wastage";
+import { Documents } from "./documents";
 
 @Entity()
 export class Customer extends BaseEntity {
@@ -113,8 +114,10 @@ export class Customer extends BaseEntity {
   })
   granter: Granter[];
 
-  @Column({ nullable: true, type: "text" })
-  documents: string;
+  @OneToMany(() => Documents, (d) => d.customer, {
+    cascade: true,
+  })
+  documents: Documents[];
 
   @Column({ nullable: true, default: false })
   approved: boolean;

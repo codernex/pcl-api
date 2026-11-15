@@ -1,3 +1,4 @@
+import path from "path";
 import { DataSource } from "typeorm";
 import sanitizedConfig from "./config";
 import {
@@ -43,6 +44,7 @@ export const appDataSource = new DataSource({
   password: sanitizedConfig.DB_PASS,
   port: sanitizedConfig.DB_PORT,
   database: sanitizedConfig.DB_NAME,
+  host: sanitizedConfig.DB_HOST,
   entities: [
     User,
     Role,
@@ -77,8 +79,11 @@ export const appDataSource = new DataSource({
     Wastage,
     WastageProduct,
     Slot,
-    ProductionProduct
+    ProductionProduct,
   ],
-  synchronize: true,
-  host: sanitizedConfig.DB_HOST,
+  // Do NOT auto synchronize in production to prevent unintended schema mutations or data loss
+  synchronize: sanitizedConfig.NODE_ENV !== "production",
+  migrations: [path.join(__dirname, "migrations", "*{.ts,.js}")],
+  migrationsTableName: "migrations",
+  migrationsRun: sanitizedConfig.NODE_ENV === "production",
 });
