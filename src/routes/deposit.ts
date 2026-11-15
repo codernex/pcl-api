@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { ErrorHandler, isDateValid, requestHandler } from "../utils";
+import { encodeCursor, ErrorHandler, isDateValid, parseCursorParams, requestHandler } from "../utils";
 import { appDataSource } from "../orm.config";
 import { SavingDeposit } from "../entities";
 
@@ -10,6 +10,7 @@ depositRoutes.get(
   requestHandler(
     async (req, res, next) => {
       try {
+        const { cursor, limit } = parseCursorParams(req.query);
         const qb = appDataSource
           .getRepository(SavingDeposit)
           .createQueryBuilder("s")
@@ -26,9 +27,31 @@ depositRoutes.get(
           });
         }
 
-        const data = await qb.orderBy("s.created_at", "DESC").getMany();
+        const totalCount = await qb.getCount();
+
+        if (cursor) {
+          qb.andWhere("s.id < :cursor", { cursor });
+        }
+
+        const items = await qb
+          .orderBy("s.id", "DESC")
+          .take(limit + 1)
+          .getMany();
+
+        const hasMore = items.length > limit;
+        if (hasMore) items.pop();
+        const nextCursor =
+          hasMore && items.length > 0
+            ? encodeCursor(items[items.length - 1].id)
+            : null;
+
         res.status(200).json({
-          data,
+          data: items,
+          pagination: {
+            nextCursor,
+            hasMore,
+            totalCount,
+          },
           status: 200,
           success: true,
         });

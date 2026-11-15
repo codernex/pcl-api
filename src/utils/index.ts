@@ -227,3 +227,35 @@ export const isDateValid = (startDate: string, endDate: string): boolean => {
 export function getNextMonthDate(date: Date): Date {
   return addMonths(date, 1);
 }
+
+
+// --- Cursor-based pagination utility ---
+
+export interface CursorPaginatedResult<T> {
+  items: T[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  totalCount: number;
+}
+
+export function parseCursorParams(query: any): {
+  cursor: number | null;
+  limit: number;
+} {
+  const limit = Math.min(Math.max(parseInt(query?.limit) || 30, 1), 100);
+  let cursor: number | null = null;
+  if (query?.cursor) {
+    try {
+      const decoded = Buffer.from(query.cursor, "base64").toString("utf-8");
+      cursor = parseInt(decoded);
+      if (isNaN(cursor)) cursor = null;
+    } catch {
+      cursor = null;
+    }
+  }
+  return { cursor, limit };
+}
+
+export function encodeCursor(id: number): string {
+  return Buffer.from(id.toString()).toString("base64");
+}

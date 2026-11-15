@@ -1,5 +1,5 @@
 import { Income, IncomeType, TransactionType } from "../entities";
-import { requestHandler } from "../utils";
+import { encodeCursor, parseCursorParams, requestHandler } from "../utils";
 import { AccountController } from "./account";
 import { Controller } from "./base";
 
@@ -54,7 +54,9 @@ export class IncomeController extends Controller<Income> {
 
   get = requestHandler(async (req, res, next) => {
     try {
-      const income = await this.repository
+      const { cursor, limit } = parseCursorParams(req.query);
+
+      const qb = this.repository
         .createQueryBuilder("income")
         .leftJoinAndSelect("income.incomeType", "incomeType")
         .select([
@@ -63,9 +65,29 @@ export class IncomeController extends Controller<Income> {
           "incomeType.type",
           "incomeType.remark",
         ])
-        .orderBy("income.id", "DESC")
-        .getMany();
-      return this.success(res, income);
+        .orderBy("income.id", "DESC");
+
+      const totalCount = await qb.getCount();
+
+      if (cursor) {
+        qb.andWhere("income.id < :cursor", { cursor });
+      }
+
+      const items = await qb.take(limit + 1).getMany();
+
+      const hasMore = items.length > limit;
+      if (hasMore) items.pop();
+      const nextCursor =
+        hasMore && items.length > 0
+          ? encodeCursor(items[items.length - 1].id)
+          : null;
+
+      return this.successPaginated(res, {
+        items,
+        nextCursor,
+        hasMore,
+        totalCount,
+      });
     } catch (error) {
       return this.failed(error, next);
     }

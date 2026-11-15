@@ -1,7 +1,7 @@
 import { NextFunction, Response } from "express";
 import { appDataSource } from "../orm.config";
 import { EntityTarget, ObjectLiteral, QueryRunner, Repository } from "typeorm";
-import { ApiError, ErrorHandler } from "../utils";
+import { ApiError, CursorPaginatedResult, ErrorHandler } from "../utils";
 import { APIResponse } from "../types";
 
 export abstract class Controller<T extends ObjectLiteral> {
@@ -27,6 +27,23 @@ export abstract class Controller<T extends ObjectLiteral> {
       success: true,
       message,
       data,
+    });
+  };
+
+  protected successPaginated = <T>(
+    res: Response<APIResponse>,
+    result: CursorPaginatedResult<T>,
+    status = 200
+  ) => {
+    res.status(status).json({
+      status,
+      success: true,
+      data: result.items,
+      pagination: {
+        nextCursor: result.nextCursor,
+        hasMore: result.hasMore,
+        totalCount: result.totalCount,
+      },
     });
   };
 

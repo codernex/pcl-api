@@ -1,8 +1,9 @@
+import { FindOptionsWhere, LessThan } from "typeorm";
 import { Customer, Project } from "../entities";
 import { Factory } from "../entities/factory";
 import { Wastage } from "../entities/wastage";
 import { WastageProduct } from "../entities/wastage-product";
-import { requestHandler } from "../utils";
+import { encodeCursor, parseCursorParams, requestHandler } from "../utils";
 import { Controller } from "./base";
 
 export class WastageController extends Controller<Wastage> {
@@ -11,18 +12,45 @@ export class WastageController extends Controller<Wastage> {
   }
 
   get = requestHandler(async (req, res, next) => {
-    const wastage = await this.repository.find({
-      relations: {
-        customer: true,
-        factory: true,
-        project: true,
-      },
-      order:{
-        createdAt:"desc"
+    try {
+      const { cursor, limit } = parseCursorParams(req.query);
+      const where: FindOptionsWhere<Wastage> = {};
+      if (cursor) {
+        where.id = LessThan(cursor);
       }
-    });
 
-    this.success(res, wastage);
+      const [items, totalCount] = await Promise.all([
+        this.repository.find({
+          where,
+          relations: {
+            customer: true,
+            factory: true,
+            project: true,
+          },
+          order: {
+            id: "DESC",
+          },
+          take: limit + 1,
+        }),
+        this.repository.count(),
+      ]);
+
+      const hasMore = items.length > limit;
+      if (hasMore) items.pop();
+      const nextCursor =
+        hasMore && items.length > 0
+          ? encodeCursor(items[items.length - 1].id)
+          : null;
+
+      return this.successPaginated(res, {
+        items,
+        nextCursor,
+        hasMore,
+        totalCount,
+      });
+    } catch (err) {
+      return this.failed(err, next);
+    }
   });
 
   create = requestHandler(

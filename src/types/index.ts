@@ -16,5 +16,10 @@ export type APIResponse = {
     data?: any
     error?: Record<string, any>,
     success: boolean,
-    message?: string
+    message?: string,
+    pagination?: {
+        nextCursor: string | null;
+        hasMore: boolean;
+        totalCount: number;
+    }
 }

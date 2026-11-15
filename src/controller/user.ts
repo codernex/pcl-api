@@ -1,8 +1,9 @@
 import { Controller } from "./base";
 import { Business, Role, User, UserRole } from "../entities";
-import { ApiError, requestHandler, sendToken } from "../utils";
+import { ApiError, encodeCursor, parseCursorParams, requestHandler, sendToken } from "../utils";
 import { permissions } from "../middleware/isAuth";
 import * as bcrypt from "bcryptjs";
+import { FindOptionsWhere, LessThan } from "typeorm";
 
 export class UserController extends Controller<User> {
   constructor() {
@@ -83,12 +84,43 @@ export class UserController extends Controller<User> {
     }
   );
   getUser = requestHandler(async (req, res, next) => {
-    const user = await this.repository.find({
-      relations: {
-        access: true,
-      },
-    });
-    return this.success(res, user);
+    try {
+      const { cursor, limit } = parseCursorParams(req.query);
+      const where: FindOptionsWhere<User> = {};
+      if (cursor) {
+        where.id = LessThan(cursor as any);
+      }
+
+      const [items, totalCount] = await Promise.all([
+        this.repository.find({
+          where,
+          relations: {
+            access: true,
+          },
+          order: {
+            id: "DESC",
+          },
+          take: limit + 1,
+        }),
+        this.repository.count(),
+      ]);
+
+      const hasMore = items.length > limit;
+      if (hasMore) items.pop();
+      const nextCursor =
+        hasMore && items.length > 0
+          ? encodeCursor(items[items.length - 1].id)
+          : null;
+
+      return this.successPaginated(res, {
+        items,
+        nextCursor,
+        hasMore,
+        totalCount,
+      });
+    } catch (err) {
+      return this.failed(err, next);
+    }
   });
 
   public loginUser = requestHandler(

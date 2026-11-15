@@ -1,5 +1,5 @@
 import { Customer, SavingsWithdraw, TransactionType } from "../entities";
-import { ErrorHandler, isDateValid, requestHandler } from "../utils";
+import { encodeCursor, ErrorHandler, isDateValid, parseCursorParams, requestHandler } from "../utils";
 import { AccountController } from "./account";
 import { Controller } from "./base";
 
@@ -11,6 +11,8 @@ export class SavingsWithdrawController extends Controller<SavingsWithdraw> {
   get = requestHandler(
     async (req, res, next) => {
       try {
+        const { cursor, limit } = parseCursorParams(req.query);
+
         const qb = this.repository
           .createQueryBuilder("sw")
           .leftJoinAndSelect("sw.customer", "c")
@@ -34,10 +36,31 @@ export class SavingsWithdrawController extends Controller<SavingsWithdraw> {
             endDate: req.query.endDate,
           });
         }
-        const savingsWithdraw = await qb
-          .orderBy("sw.created_at", "DESC")
+
+        const totalCount = await qb.getCount();
+
+        if (cursor) {
+          qb.andWhere("sw.id < :cursor", { cursor });
+        }
+
+        const items = await qb
+          .orderBy("sw.id", "DESC")
+          .take(limit + 1)
           .getMany();
-        return this.success(res, savingsWithdraw);
+
+        const hasMore = items.length > limit;
+        if (hasMore) items.pop();
+        const nextCursor =
+          hasMore && items.length > 0
+            ? encodeCursor(items[items.length - 1].id)
+            : null;
+
+        return this.successPaginated(res, {
+          items,
+          nextCursor,
+          hasMore,
+          totalCount,
+        });
       } catch (error) {
         return this.failed(error, next);
       }

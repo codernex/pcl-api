@@ -1,10 +1,10 @@
 import { toZonedTime } from "date-fns-tz";
-import { Between, FindOptionsWhere } from "typeorm";
+import { Between, FindOptionsWhere, LessThan } from "typeorm";
 import { Customer, Product, Production, Project } from "../entities";
 import { Factory } from "../entities/factory";
 import { FactoryVolatileProduct } from "../entities/FactoryVolatileProduct";
 import { ProductionProduct } from "../entities/production-product";
-import { requestHandler } from "../utils";
+import { encodeCursor, parseCursorParams, requestHandler } from "../utils";
 import { Controller } from "./base";
 
 export class ProductionController extends Controller<Production> {
@@ -127,25 +127,52 @@ export class ProductionController extends Controller<Production> {
 
   get = requestHandler(
     async (req, res, next) => {
-      let where: FindOptionsWhere<Production> = {};
-      if (req.query.startDate && req.query.endDate) {
-        // Convert the endDate to 23:59:59
-        let endDate = new Date(req.query.endDate);
-        endDate.setHours(23, 59, 59, 999);
-        where.createdAt = Between(req.query.startDate, endDate);
-      }
+      try {
+        const { cursor, limit } = parseCursorParams(req.query);
+        let where: FindOptionsWhere<Production> = {};
+        if (req.query.startDate && req.query.endDate) {
+          // Convert the endDate to 23:59:59
+          let endDate = new Date(req.query.endDate);
+          endDate.setHours(23, 59, 59, 999);
+          where.createdAt = Between(req.query.startDate, endDate);
+        }
 
-      const production = await this.repository.find({
-        relations: {
-          customer: true,
-          project: true,
-        },
-        order: {
-          createdAt: "DESC",
-        },
-        where,
-      });
-      this.success(res, production);
+        const countWhere = { ...where };
+        if (cursor) {
+          where.id = LessThan(cursor);
+        }
+
+        const [items, totalCount] = await Promise.all([
+          this.repository.find({
+            relations: {
+              customer: true,
+              project: true,
+            },
+            order: {
+              id: "DESC",
+            },
+            where,
+            take: limit + 1,
+          }),
+          this.repository.count({ where: countWhere }),
+        ]);
+
+        const hasMore = items.length > limit;
+        if (hasMore) items.pop();
+        const nextCursor =
+          hasMore && items.length > 0
+            ? encodeCursor(items[items.length - 1].id)
+            : null;
+
+        return this.successPaginated(res, {
+          items,
+          nextCursor,
+          hasMore,
+          totalCount,
+        });
+      } catch (err) {
+        return this.failed(err, next);
+      }
     },
     {
       query: {} as any,

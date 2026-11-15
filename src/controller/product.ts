@@ -1,9 +1,9 @@
-import { Between, FindOptionsWhere } from "typeorm";
+import { Between, FindOptionsWhere, LessThan } from "typeorm";
 import { Product, Production } from "../entities";
 import { Factory } from "../entities/factory";
 import { FactoryVolatileProduct } from "../entities/FactoryVolatileProduct";
 import { OpeningQuantity } from "../entities/opening-quantity";
-import { requestHandler } from "../utils";
+import { encodeCursor, parseCursorParams, requestHandler } from "../utils";
 import { Controller } from "./base";
 import { VolatileProduct } from "../entities/volatile-product";
 
@@ -86,21 +86,48 @@ export class ProductController extends Controller<Product> {
 
   get = requestHandler(
     async (req, res, next) => {
-      let where: FindOptionsWhere<Product> = {};
-      if (req.query.startDate && req.query.endDate) {
-        // Convert the endDate to 23:59:59
-        let endDate = new Date(req.query.endDate);
-        endDate.setHours(23, 59, 59, 999);
-        where.created_at = Between(req.query.startDate, endDate);
-      }
-      const data = await this.repository.find({
-        order: {
-          created_at: "DESC",
-        },
-        where,
-      });
+      try {
+        const { cursor, limit } = parseCursorParams(req.query);
+        let where: FindOptionsWhere<Product> = {};
+        if (req.query.startDate && req.query.endDate) {
+          // Convert the endDate to 23:59:59
+          let endDate = new Date(req.query.endDate);
+          endDate.setHours(23, 59, 59, 999);
+          where.created_at = Between(req.query.startDate, endDate);
+        }
 
-      return this.success(res, data);
+        const countWhere = { ...where };
+        if (cursor) {
+          where.id = LessThan(cursor);
+        }
+
+        const [items, totalCount] = await Promise.all([
+          this.repository.find({
+            order: {
+              id: "DESC",
+            },
+            where,
+            take: limit + 1,
+          }),
+          this.repository.count({ where: countWhere }),
+        ]);
+
+        const hasMore = items.length > limit;
+        if (hasMore) items.pop();
+        const nextCursor =
+          hasMore && items.length > 0
+            ? encodeCursor(items[items.length - 1].id)
+            : null;
+
+        return this.successPaginated(res, {
+          items,
+          nextCursor,
+          hasMore,
+          totalCount,
+        });
+      } catch (err) {
+        return this.failed(err, next);
+      }
     },
     {
       query: {} as any,
@@ -172,7 +199,37 @@ export class ProductController extends Controller<Product> {
   );
 
   getVolatileProducts = requestHandler(async (req, res, next) => {
-    const data = await this.getRepository(VolatileProduct).find();
-    return this.success(res, data);
+    try {
+      const { cursor, limit } = parseCursorParams(req.query);
+      const where: FindOptionsWhere<VolatileProduct> = {};
+      if (cursor) {
+        where.id = LessThan(cursor);
+      }
+      const repo = this.getRepository(VolatileProduct);
+      const [items, totalCount] = await Promise.all([
+        repo.find({
+          where,
+          order: { id: "DESC" },
+          take: limit + 1,
+        }),
+        repo.count(),
+      ]);
+
+      const hasMore = items.length > limit;
+      if (hasMore) items.pop();
+      const nextCursor =
+        hasMore && items.length > 0
+          ? encodeCursor(items[items.length - 1].id)
+          : null;
+
+      return this.successPaginated(res, {
+        items,
+        nextCursor,
+        hasMore,
+        totalCount,
+      });
+    } catch (err) {
+      return this.failed(err, next);
+    }
   });
 }

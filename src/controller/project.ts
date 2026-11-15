@@ -10,9 +10,9 @@ import {
 import { Factory } from "../entities/factory";
 import { FactoryVolatileProduct } from "../entities/FactoryVolatileProduct";
 import { VolatileProduct } from "../entities/volatile-product";
-import { requestHandler } from "../utils";
+import { encodeCursor, parseCursorParams, requestHandler } from "../utils";
 import { Controller } from "./base";
-import { Between, FindOptionsWhere, In } from "typeorm";
+import { Between, FindOptionsWhere, In, LessThan } from "typeorm";
 import { Slot } from "../entities/slot";
 
 export class ProjectController extends Controller<Project> {
@@ -79,7 +79,8 @@ export class ProjectController extends Controller<Project> {
           this.getRepository(Slot).save(slot),
         ]);
       } catch (error) {
-        return this.failed(error.message, next);
+        const err = error as any
+        return this.failed(err.message, next);
       }
 
       return this.success(res, project, 201);
@@ -90,18 +91,46 @@ export class ProjectController extends Controller<Project> {
   );
 
   getProjects = requestHandler(async (req, res, next) => {
-    const projects = await this.repository.find({
-      order: {
-        createdAt: "desc",
-      },
-      relations: {
-        planProject: {
-          product: true,
-        },
-        wastages: true,
-      },
-    });
-    this.success(res, projects, 200);
+    try {
+      const { cursor, limit } = parseCursorParams(req.query);
+      const where: FindOptionsWhere<Project> = {};
+      if (cursor) {
+        where.id = LessThan(cursor);
+      }
+
+      const [items, totalCount] = await Promise.all([
+        this.repository.find({
+          where,
+          order: {
+            id: "DESC",
+          },
+          relations: {
+            planProject: {
+              product: true,
+            },
+            wastages: true,
+          },
+          take: limit + 1,
+        }),
+        this.repository.count(),
+      ]);
+
+      const hasMore = items.length > limit;
+      if (hasMore) items.pop();
+      const nextCursor =
+        hasMore && items.length > 0
+          ? encodeCursor(items[items.length - 1].id)
+          : null;
+
+      return this.successPaginated(res, {
+        items,
+        nextCursor,
+        hasMore,
+        totalCount,
+      });
+    } catch (err) {
+      return this.failed(err, next);
+    }
   });
 
   addDelivery = requestHandler(
@@ -229,9 +258,8 @@ export class ProjectController extends Controller<Project> {
 
               return { ...product, pendingQuantity: p.quantity };
             } catch (error) {
-              console.log(error);
-
-              throw new Error(error);
+              const err = error as any
+              throw new Error(err);
             }
           })
         );
@@ -278,7 +306,8 @@ export class ProjectController extends Controller<Project> {
 
         return this.success(res, delivery, 201);
       } catch (error) {
-        return this.failed(error.message, next);
+        const err = error as any
+        return this.failed(err.message, next);
       }
     },
     {
@@ -288,30 +317,63 @@ export class ProjectController extends Controller<Project> {
 
   getDelivery = requestHandler(
     async (req, res, next) => {
-      let where: FindOptionsWhere<Delivery> = {};
-      if (req.query.startDate && req.query.endDate) {
-        // Convert the endDate to 23:59:59
-        let endDate = new Date(req.query.endDate);
-        endDate.setHours(23, 59, 59, 999);
-        where.createAt = Between(req.query.startDate, endDate);
+      try {
+        const { cursor, limit } = parseCursorParams(req.query);
+        let dateWhere: FindOptionsWhere<Delivery> = {};
+        if (req.query.startDate && req.query.endDate) {
+          // Convert the endDate to 23:59:59
+          let endDate = new Date(req.query.endDate);
+          endDate.setHours(23, 59, 59, 999);
+          dateWhere.createAt = Between(req.query.startDate, endDate);
+        }
+
+        const countWhere: FindOptionsWhere<Delivery> = {
+          project: true,
+          products: true,
+          customer: true,
+          ...dateWhere,
+        };
+
+        const where: FindOptionsWhere<Delivery> = {
+          ...countWhere,
+        };
+        if (cursor) {
+          where.id = LessThan(cursor);
+        }
+
+        const deliveryRepo = this.getRepository(Delivery);
+        const [items, totalCount] = await Promise.all([
+          deliveryRepo.find({
+            relations: {
+              project: true,
+              products: true,
+              customer: true,
+            },
+            where,
+            order: {
+              id: "DESC",
+            },
+            take: limit + 1,
+          }),
+          deliveryRepo.count({ where: countWhere }),
+        ]);
+
+        const hasMore = items.length > limit;
+        if (hasMore) items.pop();
+        const nextCursor =
+          hasMore && items.length > 0
+            ? encodeCursor(items[items.length - 1].id)
+            : null;
+
+        return this.successPaginated(res, {
+          items,
+          nextCursor,
+          hasMore,
+          totalCount,
+        });
+      } catch (err) {
+        return this.failed(err, next);
       }
-      const delivery = await this.getRepository(Delivery).find({
-        relations: {
-          project: true,
-          products: true,
-          customer: true,
-        },
-        where: {
-          project: true,
-          products: true,
-          customer: true,
-          ...where,
-        },
-        order: {
-          createAt: "desc",
-        },
-      });
-      this.success(res, delivery);
     },
     {
       query: {} as any,

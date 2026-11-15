@@ -7,7 +7,7 @@ import {
   TransactionType,
 } from "../entities";
 import { appDataSource } from "../orm.config";
-import { ErrorHandler, isDateValid, requestHandler } from "../utils";
+import { encodeCursor, ErrorHandler, isDateValid, parseCursorParams, requestHandler } from "../utils";
 import { Controller } from "./base";
 
 export class AccountController extends Controller<Account> {
@@ -58,11 +58,13 @@ export class AccountController extends Controller<Account> {
     async (req, res, next) => {
       try {
         this.validateErr(req.params, "accountId");
+        const { cursor, limit } = parseCursorParams(req.query);
+
         const qb = this.getRepository(AccountHistory)
           .createQueryBuilder("ah")
           .leftJoinAndSelect("ah.account", "a")
           .leftJoinAndSelect("ah.customer", "c")
-          .andWhere(`a.id = ${req.params.accountId}`);
+          .andWhere("a.id = :accountId", { accountId: req.params.accountId });
 
         if (req.query.startDate && req.query.endDate) {
           const isValid = isDateValid(req.query.startDate, req.query.endDate);
@@ -74,9 +76,31 @@ export class AccountController extends Controller<Account> {
             endDate: req.query.endDate,
           });
         }
-        const account = await qb.orderBy("ah.createdAt", "DESC").getMany();
 
-        return this.success(res, account);
+        const totalCount = await qb.getCount();
+
+        if (cursor) {
+          qb.andWhere("ah.id < :cursor", { cursor });
+        }
+
+        const items = await qb
+          .orderBy("ah.id", "DESC")
+          .take(limit + 1)
+          .getMany();
+
+        const hasMore = items.length > limit;
+        if (hasMore) items.pop();
+        const nextCursor =
+          hasMore && items.length > 0
+            ? encodeCursor(items[items.length - 1].id)
+            : null;
+
+        return this.successPaginated(res, {
+          items,
+          nextCursor,
+          hasMore,
+          totalCount,
+        });
       } catch (err) {
         return this.failed(err, next);
       }
@@ -142,13 +166,35 @@ export class AccountController extends Controller<Account> {
 
   getTransferHisoty = requestHandler(async (req, res, next) => {
     try {
-      const transfer = await this.getRepository(AmountTransfer)
+      const { cursor, limit } = parseCursorParams(req.query);
+
+      const qb = this.getRepository(AmountTransfer)
         .createQueryBuilder("at")
         .leftJoinAndSelect("at.sender", "s")
         .leftJoinAndSelect("at.reciever", "r")
-        .orderBy("at.id", "DESC")
-        .getMany();
-      return this.success(res, transfer);
+        .orderBy("at.id", "DESC");
+
+      const totalCount = await qb.getCount();
+
+      if (cursor) {
+        qb.andWhere("at.id < :cursor", { cursor });
+      }
+
+      const items = await qb.take(limit + 1).getMany();
+
+      const hasMore = items.length > limit;
+      if (hasMore) items.pop();
+      const nextCursor =
+        hasMore && items.length > 0
+          ? encodeCursor(items[items.length - 1].id)
+          : null;
+
+      return this.successPaginated(res, {
+        items,
+        nextCursor,
+        hasMore,
+        totalCount,
+      });
     } catch (error) {
       return this.failed(error, next);
     }

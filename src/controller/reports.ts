@@ -3,12 +3,14 @@ import { EntityTarget, ObjectLiteral } from "typeorm";
 import { AccountHistory } from "../entities";
 import { appDataSource } from "../orm.config";
 import { APIResponse } from "../types";
-import { ApiError, ErrorHandler, isDateValid, requestHandler } from "../utils";
+import { ApiError, CursorPaginatedResult, encodeCursor, ErrorHandler, isDateValid, parseCursorParams, requestHandler } from "../utils";
 
 export class ReportController {
   getCashFlow = requestHandler(
     async (req, res, next) => {
       try {
+        const { cursor, limit } = parseCursorParams(req.query);
+
         const qb = this.getRepository(AccountHistory)
           .createQueryBuilder("ah")
           .leftJoinAndSelect("ah.account", "a")
@@ -26,9 +28,30 @@ export class ReportController {
           });
         }
 
-        const cashFlow = await qb.orderBy("ah.createdAt", "DESC").getMany();
+        const totalCount = await qb.getCount();
 
-        this.success(res, cashFlow);
+        if (cursor) {
+          qb.andWhere("ah.id < :cursor", { cursor });
+        }
+
+        const items = await qb
+          .orderBy("ah.id", "DESC")
+          .take(limit + 1)
+          .getMany();
+
+        const hasMore = items.length > limit;
+        if (hasMore) items.pop();
+        const nextCursor =
+          hasMore && items.length > 0
+            ? encodeCursor(items[items.length - 1].id)
+            : null;
+
+        this.successPaginated(res, {
+          items,
+          nextCursor,
+          hasMore,
+          totalCount,
+        });
       } catch (err) {
         return this.failed(err, next);
       }
@@ -59,6 +82,23 @@ export class ReportController {
       success: true,
       message,
       data,
+    });
+  };
+
+  protected successPaginated = <T>(
+    res: Response<APIResponse>,
+    result: CursorPaginatedResult<T>,
+    status = 200
+  ) => {
+    res.status(status).json({
+      status,
+      success: true,
+      data: result.items,
+      pagination: {
+        nextCursor: result.nextCursor,
+        hasMore: result.hasMore,
+        totalCount: result.totalCount,
+      },
     });
   };
 

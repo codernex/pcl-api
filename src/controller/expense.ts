@@ -1,5 +1,6 @@
+import { LessThan, FindOptionsWhere } from "typeorm";
 import { Expense, ExpenseType, TransactionType } from "../entities";
-import { ErrorHandler, requestHandler } from "../utils";
+import { ErrorHandler, encodeCursor, parseCursorParams, requestHandler } from "../utils";
 import { AccountController } from "./account";
 import { Controller } from "./base";
 
@@ -60,9 +61,35 @@ export class ExpenseController extends Controller<Expense> {
 
   get = requestHandler(async (req, res, next) => {
     try {
-      const expense = await this.repository.find();
+      const { cursor, limit } = parseCursorParams(req.query);
 
-      return this.success(res, expense);
+      const where: FindOptionsWhere<Expense> = {};
+      if (cursor) {
+        where.id = LessThan(cursor);
+      }
+
+      const [items, totalCount] = await Promise.all([
+        this.repository.find({
+          where,
+          order: { id: "DESC" },
+          take: limit + 1,
+        }),
+        this.repository.count(),
+      ]);
+
+      const hasMore = items.length > limit;
+      if (hasMore) items.pop();
+      const nextCursor =
+        hasMore && items.length > 0
+          ? encodeCursor(items[items.length - 1].id)
+          : null;
+
+      return this.successPaginated(res, {
+        items,
+        nextCursor,
+        hasMore,
+        totalCount,
+      });
     } catch (err) {
       this.failed(err, next);
     }

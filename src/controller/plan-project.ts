@@ -1,6 +1,7 @@
+import { FindOptionsWhere, LessThan } from "typeorm";
 import { Customer, PlanProject, Project } from "../entities";
 import { VolatileProduct } from "../entities/volatile-product";
-import { requestHandler } from "../utils";
+import { encodeCursor, parseCursorParams, requestHandler } from "../utils";
 import { Controller } from "./base";
 
 export class PlanController extends Controller<PlanProject> {
@@ -73,14 +74,45 @@ export class PlanController extends Controller<PlanProject> {
   );
 
   getPlan = requestHandler(async (req, res, next) => {
-    const plan = await this.repository.find({
-      relations: {
-        product: true,
-        project: true,
-        customer:true
-      },
-    });
-    this.success(res, plan);
+    try {
+      const { cursor, limit } = parseCursorParams(req.query);
+      const where: FindOptionsWhere<PlanProject> = {};
+      if (cursor) {
+        where.id = LessThan(cursor);
+      }
+
+      const [items, totalCount] = await Promise.all([
+        this.repository.find({
+          where,
+          relations: {
+            product: true,
+            project: true,
+            customer: true,
+          },
+          order: {
+            id: "DESC",
+          },
+          take: limit + 1,
+        }),
+        this.repository.count(),
+      ]);
+
+      const hasMore = items.length > limit;
+      if (hasMore) items.pop();
+      const nextCursor =
+        hasMore && items.length > 0
+          ? encodeCursor(items[items.length - 1].id)
+          : null;
+
+      return this.successPaginated(res, {
+        items,
+        nextCursor,
+        hasMore,
+        totalCount,
+      });
+    } catch (err) {
+      return this.failed(err, next);
+    }
   });
 
   protected countDaysExcludingFridays(

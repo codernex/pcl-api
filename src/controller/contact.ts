@@ -1,3 +1,4 @@
+import { LessThan, FindOptionsWhere } from "typeorm";
 import {
   Customer,
   Granter,
@@ -6,7 +7,7 @@ import {
   SavingDeposit,
   TransactionType,
 } from "../entities";
-import { ApiError, ErrorHandler, requestHandler } from "../utils";
+import { ApiError, ErrorHandler, encodeCursor, parseCursorParams, requestHandler } from "../utils";
 import { AccountController } from "./account";
 import { Controller } from "./base";
 
@@ -49,18 +50,43 @@ export class ContactController extends Controller<Customer> {
 
   getContacts = requestHandler(async (req, res, next) => {
     try {
-      const contacts = await this.repository.find({
-        relations: {
-          payments: true,
-        },
-        order: {
-          payments: {
-            created_at: "DESC",
-          },
-        },
-      });
+      const { cursor, limit } = parseCursorParams(req.query);
 
-      return this.success(res, contacts);
+      const where: FindOptionsWhere<Customer> = {};
+      if (cursor) {
+        where.id = LessThan(cursor);
+      }
+
+      const [items, totalCount] = await Promise.all([
+        this.repository.find({
+          where,
+          relations: {
+            payments: true,
+          },
+          order: {
+            id: "DESC",
+            payments: {
+              created_at: "DESC",
+            },
+          },
+          take: limit + 1,
+        }),
+        this.repository.count(),
+      ]);
+
+      const hasMore = items.length > limit;
+      if (hasMore) items.pop();
+      const nextCursor =
+        hasMore && items.length > 0
+          ? encodeCursor(items[items.length - 1].id)
+          : null;
+
+      return this.successPaginated(res, {
+        items,
+        nextCursor,
+        hasMore,
+        totalCount,
+      });
     } catch (err) {
       return ApiError(err, 500, next);
     }

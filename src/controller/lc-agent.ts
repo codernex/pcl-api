@@ -1,5 +1,6 @@
+import { FindOptionsWhere, LessThan } from "typeorm";
 import { LcAgent } from "../entities";
-import { requestHandler } from "../utils";
+import { encodeCursor, parseCursorParams, requestHandler } from "../utils";
 import { Controller } from "./base";
 
 export class LcAgentController extends Controller<LcAgent> {
@@ -25,7 +26,37 @@ export class LcAgentController extends Controller<LcAgent> {
   );
 
   get = requestHandler(async (req, res, next) => {
-    const data = await this.repository.find();
-    return this.success(res, data);
+    try {
+      const { cursor, limit } = parseCursorParams(req.query);
+      const where: FindOptionsWhere<LcAgent> = {};
+      if (cursor) {
+        where.id = LessThan(cursor);
+      }
+
+      const [items, totalCount] = await Promise.all([
+        this.repository.find({
+          where,
+          order: { id: "DESC" },
+          take: limit + 1,
+        }),
+        this.repository.count(),
+      ]);
+
+      const hasMore = items.length > limit;
+      if (hasMore) items.pop();
+      const nextCursor =
+        hasMore && items.length > 0
+          ? encodeCursor(items[items.length - 1].id)
+          : null;
+
+      return this.successPaginated(res, {
+        items,
+        nextCursor,
+        hasMore,
+        totalCount,
+      });
+    } catch (err) {
+      return this.failed(err, next);
+    }
   });
 }
