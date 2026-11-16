@@ -82,7 +82,7 @@ export const appDataSource = new DataSource({
     ProductionProduct,
   ],
   // Do NOT auto synchronize in production to prevent unintended schema mutations or data loss
-  synchronize: sanitizedConfig.NODE_ENV !== "production",
+  // synchronize: sanitizedConfig.NODE_ENV !== "production",
   migrations: [path.join(__dirname, "migrations", "*{.ts,.js}")],
   migrationsTableName: "migrations",
   migrationsRun: sanitizedConfig.NODE_ENV === "production",

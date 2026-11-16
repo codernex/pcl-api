@@ -47,6 +47,7 @@ export class Customer extends BaseEntity {
 
   @Column({
     type: "bigint",
+    default:0,
     transformer: {
       to: (v) => v.toString(),
       from: (v) => parseInt(v),
@@ -56,8 +57,9 @@ export class Customer extends BaseEntity {
 
   @Column({
     type: "bigint",
+    default:0,
     transformer: {
-      to: (v) => v.toString(),
+      to: (v) => v?.toString(),
       from: (v) => parseInt(v),
     },
   })
@@ -70,23 +72,11 @@ export class Customer extends BaseEntity {
   husband_or_parent_name: string;
 
   @Column({
-    type: "bigint",
-    transformer: {
-      to: (v) => v.toString(),
-      from: (v) => parseInt(v),
-    },
-  })
-  savings: number;
-
-  @Column({ default: false })
-  is_hire_account_closed: boolean;
-
-  @Column({
     nullable: true,
-    default: 0,
     type: "bigint",
+    default:0,
     transformer: {
-      to: (value: BigInt) => value.toString(), // Store as string in database
+      to: (value: BigInt) => value?.toString(), // Store as string in database
       from: (value: string) => Number(value), // Convert from string to BigInt when retrieving from database
     },
   })
