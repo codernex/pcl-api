@@ -367,7 +367,7 @@ export class ContactController extends Controller<Customer> {
           req.body.accountId
         );
 
-        contact.savings = parseInt(contact.savings.toString()) + amount;
+        // contact.savings = parseInt(contact.savings.toString()) + amount;
 
         const deposit = new SavingDeposit();
         deposit.amount = amount;

@@ -85,13 +85,13 @@ export class SavingsWithdrawController extends Controller<SavingsWithdraw> {
           return this.failed("Customer not found", next);
         }
 
-        if (customer.savings < parseInt(req.body.amount)) {
-          return this.failed("Insufficient savings, with", next);
-        }
-        customer.savings = Math.max(
-          customer.savings - parseInt(req.body.amount),
-          0
-        );
+        // if (customer.savings < parseInt(req.body.amount)) {
+        //   return this.failed("Insufficient savings, with", next);
+        // }
+        // customer.savings = Math.max(
+        //   customer.savings - parseInt(req.body.amount),
+        //   0
+        // );
 
         const savingsWithdraw = new SavingsWithdraw();
         savingsWithdraw.amount = parseInt(req.body.amount);
