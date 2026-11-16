@@ -16,4 +16,5 @@ export * from "./project";
 export * from "./production";
 export * from "./costing";
 export * from "./factory";
-export * from './wastage'
+export * from './wastage';
+export * from './crm';

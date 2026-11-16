@@ -27,6 +27,8 @@ import {
   SavingsWithdraw,
   Supplier,
   User,
+  CrmDeal,
+  CrmActivity,
 } from "./entities";
 import { VolatileProduct } from "./entities/volatile-product";
 import { Costing } from "./entities/costing";
@@ -80,6 +82,8 @@ export const appDataSource = new DataSource({
     WastageProduct,
     Slot,
     ProductionProduct,
+    CrmDeal,
+    CrmActivity,
   ],
   // Do NOT auto synchronize in production to prevent unintended schema mutations or data loss
   // synchronize: sanitizedConfig.NODE_ENV !== "production",

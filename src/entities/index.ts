@@ -22,3 +22,5 @@ export * from "./project";
 export * from "./plan-project";
 export * from "./production";
 export * from "./documents";
+export * from "./crm-deal";
+export * from "./crm-activity";

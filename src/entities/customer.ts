@@ -55,6 +55,9 @@ export class Customer extends BaseEntity {
   })
   opening_balance: number;
 
+  @Column({default:0})
+  savings:number
+
   @Column({
     type: "bigint",
     default:0,

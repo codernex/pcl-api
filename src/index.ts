@@ -22,6 +22,7 @@ import {
   savingsWithdrawRoutes,
   userRoutes,
   wastageRoutes,
+  crmRoutes,
 } from "./routes";
 import { depositRoutes } from "./routes/deposit";
 import { incomeTypeRoutes } from "./routes/income-type";
@@ -69,6 +70,7 @@ const mount = async (app: Application) => {
   app.use("/api/v1/costings", isAuthenticated, costingRoutes);
   app.use("/api/v1/factory", isAuthenticated, factoryRoutes);
   app.use("/api/v1/wastage", isAuthenticated, wastageRoutes);
+  app.use("/api/v1/crm", isAuthenticated, crmRoutes);
 
   app.get("/api/v1/healthz", (_req, res) => {
     res.status(200).json({ status: "ok" });
